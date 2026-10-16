@@ -1,4 +1,4 @@
-import type { IssueFilter, IssueType, Role, StateCategory } from "@veloq/core";
+import type { AutomationAction, AutomationTrigger, Condition, CsvMapping, FieldKind, IssueFilter, IssueType, Role, StateCategory } from "@veloq/core";
 import type { ErrorCode } from "@veloq/i18n";
 import { createAuthClient } from "better-auth/react";
 import { i18n } from "./i18n";
@@ -111,6 +111,7 @@ export interface Comment {
   body: string;
   authorId: string | null;
   authorName: string | null;
+  source?: string | null;
   createdAt: string;
   editedAt: string | null;
 }
@@ -272,6 +273,68 @@ export interface PageSummary {
   updatedByName: string | null;
 }
 
+export interface CustomField {
+  id: string;
+  name: string;
+  kind: FieldKind;
+  projectId: string | null;
+  options: { id: string; name: string; color?: string }[];
+}
+export interface IssueTemplate {
+  id: string;
+  projectId: string;
+  name: string;
+  title: string;
+  description: string;
+  defaults: { type?: IssueType; priority?: number; estimate?: number | null; assigneeId?: string | null; labelIds?: string[]; fields?: Record<string, unknown> };
+}
+export interface RecurrenceRow {
+  id: string;
+  templateId: string;
+  templateName: string;
+  projectId: string;
+  freq: "daily" | "weekly" | "monthly";
+  interval: number;
+  weekdays: number[];
+  dayOfMonth: number | null;
+  startDate: string;
+  nextDate: string;
+  lastDate: string | null;
+  active: boolean;
+}
+export interface AutomationRuleRow {
+  id: string;
+  name: string;
+  projectId: string | null;
+  trigger: AutomationTrigger;
+  conditions: Condition[];
+  actions: AutomationAction[];
+  active: boolean;
+  runCount: number;
+  lastRunAt: string | null;
+  lastError: string | null;
+}
+export interface TimeEntryRow {
+  id: string;
+  minutes: number;
+  date: string;
+  note: string;
+  userId: string | null;
+  userName: string | null;
+}
+export interface Report {
+  range: { from: string; to: string };
+  flow: { completed: number; leadP50: number | null; leadP85: number | null; cycleP50: number | null; cycleP85: number | null };
+  throughput: { weekEnding: string; done: number }[];
+  cfd: ({ date: string } & Record<StateCategory, number>)[];
+  workload: { userId: string | null; name: string | null; open: number; estimate: number }[];
+  time: { userId: string | null; name: string | null; minutes: number }[];
+}
+export type ImportInput =
+  | { source: "csv"; projectId: string; csv: string; mapping: CsvMapping }
+  | { source: "jira" | "linear"; projectId: string; csv: string }
+  | { source: "github"; projectId: string; repo: string; token?: string };
+
 const ws = (slug: string) => `/workspaces/${slug}`;
 
 export const api = {
@@ -420,6 +483,42 @@ export const api = {
     call("PUT", `${ws(slug)}/members/${userId}/projects`, { projectIds }),
   preferences: () => call<{ preferences: { locale: "ar" | "en"; emailDigest: boolean } }>("GET", "/me/preferences"),
   setPreferences: (patch: { locale?: "ar" | "en"; emailDigest?: boolean }) => call("PATCH", "/me/preferences", patch),
+
+  fields: (slug: string, projectId?: string) =>
+    call<{ fields: CustomField[] }>("GET", `${ws(slug)}/fields${projectId ? `?projectId=${projectId}` : ""}`),
+  createField: (slug: string, input: Omit<CustomField, "id">) => call<{ field: CustomField }>("POST", `${ws(slug)}/fields`, input),
+  updateField: (slug: string, id: string, patch: Partial<Pick<CustomField, "name" | "options">>) => call("PATCH", `${ws(slug)}/fields/${id}`, patch),
+  deleteField: (slug: string, id: string) => call("DELETE", `${ws(slug)}/fields/${id}`),
+  issueFields: (slug: string, issueId: string) => call<{ values: Record<string, unknown> }>("GET", `${ws(slug)}/issues/${issueId}/fields`),
+
+  templates: (slug: string, projectId?: string) =>
+    call<{ templates: IssueTemplate[] }>("GET", `${ws(slug)}/templates${projectId ? `?projectId=${projectId}` : ""}`),
+  createTemplate: (slug: string, input: Record<string, unknown>) => call<{ template: IssueTemplate }>("POST", `${ws(slug)}/templates`, input),
+  deleteTemplate: (slug: string, id: string) => call("DELETE", `${ws(slug)}/templates/${id}`),
+  recurrences: (slug: string) => call<{ recurrences: RecurrenceRow[] }>("GET", `${ws(slug)}/recurrences`),
+  createRecurrence: (slug: string, input: Record<string, unknown>) => call("POST", `${ws(slug)}/recurrences`, input),
+  setRecurrenceActive: (slug: string, id: string, active: boolean) => call("PATCH", `${ws(slug)}/recurrences/${id}`, { active }),
+  deleteRecurrence: (slug: string, id: string) => call("DELETE", `${ws(slug)}/recurrences/${id}`),
+
+  automations: (slug: string) => call<{ rules: AutomationRuleRow[] }>("GET", `${ws(slug)}/automations`),
+  createAutomation: (slug: string, input: Omit<AutomationRuleRow, "id" | "runCount" | "lastRunAt" | "lastError">) =>
+    call<{ rule: AutomationRuleRow }>("POST", `${ws(slug)}/automations`, input),
+  updateAutomation: (slug: string, id: string, patch: { active?: boolean }) => call("PATCH", `${ws(slug)}/automations/${id}`, patch),
+  deleteAutomation: (slug: string, id: string) => call("DELETE", `${ws(slug)}/automations/${id}`),
+
+  timeEntries: (slug: string, issueId: string) =>
+    call<{ entries: TimeEntryRow[]; totalMinutes: number }>("GET", `${ws(slug)}/issues/${issueId}/time`),
+  logTime: (slug: string, issueId: string, input: { minutes: number; date: string; note?: string }) =>
+    call("POST", `${ws(slug)}/issues/${issueId}/time`, input),
+  deleteTime: (slug: string, id: string) => call("DELETE", `${ws(slug)}/time/${id}`),
+
+  report: (slug: string, q: { projectId?: string; from?: string; to?: string }) => {
+    const p = new URLSearchParams(Object.entries(q).filter(([, v]) => v) as [string, string][]);
+    return call<Report>("GET", `${ws(slug)}/reports${p.size ? `?${p}` : ""}`);
+  },
+  importPreview: (slug: string, csv: string) => call<{ headers: string[] }>("POST", `${ws(slug)}/import/preview`, { csv }),
+  runImport: (slug: string, input: ImportInput) =>
+    call<{ stats: { created: number; updated: number; skipped: number; labels: number } }>("POST", `${ws(slug)}/import`, input),
 
   views: (slug: string) => call<{ views: SavedView[] }>("GET", `${ws(slug)}/views`),
   createView: (slug: string, input: Omit<SavedView, "id" | "ownerId">) =>

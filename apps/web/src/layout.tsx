@@ -1,3 +1,4 @@
+import { can } from "@veloq/core";
 import { Link, Outlet, useNavigate, useParams } from "@tanstack/react-router";
 import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
@@ -77,6 +78,11 @@ export function WorkspaceLayout() {
       <NavLink to="/w/$slug/views" slug={slug}>
         {t("nav.views")}
       </NavLink>
+      {can(ws.data?.workspace.role, "report.read") && (
+        <NavLink to="/w/$slug/reports" slug={slug}>
+          {t("nav.reports")}
+        </NavLink>
+      )}
       <NavLink to="/w/$slug/docs" slug={slug}>
         {t("docs.title")}
       </NavLink>

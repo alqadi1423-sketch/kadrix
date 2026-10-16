@@ -5,6 +5,7 @@ import { useEffect, useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { api, type Issue, type Member, type Relation } from "../api";
 import { DevSection } from "../components/dev";
+import { IssueFields, TimeSection, useFields } from "../components/extend";
 import { Avatar, LabelChip, StateIcon } from "../components/icons";
 import { IssueRow } from "../components/issue-row";
 import { Markdown } from "../components/markdown";
@@ -79,6 +80,7 @@ function IssueDetail({ slug, id }: { slug: string; id: string }) {
         <Relations slug={slug} issue={issue} relations={detail.data.relations} related={detail.data.related} editable={editable} />
         <DevSection slug={slug} issueId={id} issueKey={issue.key} />
         <MentionedInDocs slug={slug} issueId={id} />
+        <TimeSection slug={slug} issueId={id} canLog={can(role, "time.log")} canModerate={can(role, "issue.delete")} />
         <Attachments slug={slug} id={id} editable={editable} />
         <Conversation slug={slug} id={id} members={m} canComment={can(role, "comment.create")} canModerate={can(role, "issue.delete")} />
       </div>
@@ -166,6 +168,7 @@ function IssueDetail({ slug, id }: { slug: string; id: string }) {
             className="w-full rounded-[var(--radius-control)] border border-line bg-surface px-2 py-1.5 text-sm"
           />
         </Prop>
+        <IssueFields slug={slug} issueId={id} projectId={issue.projectId} members={m} editable={editable} />
         <ErrorText error={update.error} />
         <div className="flex flex-wrap gap-2 border-t border-line pt-4">
           <Button variant="quiet" onClick={() => sub.mutate(!detail.data.subscribed)}>
@@ -555,6 +558,9 @@ function Conversation({
   const me = useMe();
   const comments = useQuery({ queryKey: ["ws", slug, "issue", id, "comments"], queryFn: () => api.comments(slug, id) });
   const activity = useQuery({ queryKey: ["ws", slug, "issue", id, "activity"], queryFn: () => api.activity(slug, id) });
+  const fields = useFields(slug);
+  const fieldName = (f: string) => (f.startsWith("field:") ? (fields.data?.find((x) => `field:${x.id}` === f)?.name ?? f) : f);
+  const sourceName = (src: string | null | undefined) => (src ? t(`integrations.${src}`) : "?");
   const [draft, setDraft] = useState("");
   const refresh = () => qc.invalidateQueries({ queryKey: ["ws", slug, "issue", id] });
   const send = useMutation({
@@ -580,9 +586,9 @@ function Conversation({
           <p className="flex items-center gap-2 text-sm text-muted">
             <span className="size-1.5 rounded-full bg-line" />
             {t(known ? `activity.${k}` : "activity.other", {
-              actor: a.actorName ?? (a.source ? t(`integrations.${a.source}`) : "?"),
+              actor: a.actorName ?? sourceName(a.source),
               to,
-              field: a.field,
+              field: fieldName(a.field),
             })}
             <time className="ms-auto text-xs" dateTime={a.createdAt}>
               {fmt.format(new Date(a.createdAt))}
@@ -597,8 +603,8 @@ function Conversation({
       node: (
         <article className="rounded-[var(--radius-panel)] border border-line bg-surface p-3">
           <header className="mb-2 flex items-center gap-2 text-sm">
-            <Avatar name={c.authorName} />
-            <span className="font-medium">{c.authorName}</span>
+            <Avatar name={c.authorName ?? sourceName(c.source)} />
+            <span className="font-medium">{c.authorName ?? sourceName(c.source)}</span>
             <time className="text-xs text-muted" dateTime={c.createdAt}>
               {fmt.format(new Date(c.createdAt))}
             </time>

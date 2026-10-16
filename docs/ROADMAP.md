@@ -13,7 +13,7 @@ Status: ✅ done · 🔨 in progress · ⏳ not started
 | 3 | Developer integration | ✅ |
 | 4 | Docs and collaboration | ✅ |
 | 4.5 | External review fixes | ✅ |
-| 5 | Reports, automation, import | ⏳ |
+| 5 | Reports, automation, import | ✅ |
 | 6 | Future paths: agents, AI, mobile, cloud | ⏳ |
 | 7 | Launch readiness | ⏳ |
 
@@ -54,11 +54,15 @@ Passwords per NIST SP 800-63B-4, credential rate limit, real client
 address behind a trusted proxy, atomic bulk edits, browser tests (RTL,
 live board, co-editing) in CI.
 
-## 5. Reports, automation, import ⏳
-Dashboards (velocity, cycle and lead time, cumulative flow, workload),
-time tracking, custom fields, issue templates, automation rules,
-recurring issues, importers (Jira, Linear, GitHub Issues, CSV), Arabic
-search quality check.
+## 5. Reports, automation, import ✅
+Reports page (lead and cycle time percentiles, weekly throughput,
+cumulative flow, open work and logged time per person). Time tracking
+that reads "1h 30m" or "١س ٣٠د". Custom fields in eight kinds. Issue
+templates and recurring issues. Automation rules (six triggers,
+conditions, seven actions, bounded chains). Importers for Jira and
+Linear CSV, any CSV with column mapping, and GitHub Issues, safe to run
+again. Arabic search folds letter variants and diacritics and matches
+words with the attached article.
 
 ## 6. Future paths ⏳
 Built in, not launched: agent user type and MCP server for AI coding

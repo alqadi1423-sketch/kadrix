@@ -7,6 +7,7 @@ import { api } from "../api";
 import { useMembers, useProjects } from "../lib/hooks";
 import { Button, Dialog, ErrorText, Select } from "../ui";
 import { MentionTextarea } from "./mention-input";
+import { useTemplates } from "./templates";
 
 export function NewIssueDialog({
   slug,
@@ -26,13 +27,36 @@ export function NewIssueDialog({
   const members = useMembers(slug);
   const [projectId, setProjectId] = useState(defaults.projectId ?? "");
   const [description, setDescription] = useState("");
+  const [title, setTitle] = useState("");
+  const [type, setType] = useState("task");
+  const [priority, setPriority] = useState(0);
+  const [assigneeId, setAssigneeId] = useState("");
+  const [templateId, setTemplateId] = useState("");
+  const templates = useTemplates(slug, projectId);
 
   useEffect(() => {
     if (open) {
       setProjectId(defaults.projectId ?? projects.data?.[0]?.id ?? "");
       setDescription("");
+      setTitle("");
+      setType("task");
+      setPriority(0);
+      setAssigneeId("");
+      setTemplateId("");
     }
   }, [open, defaults.projectId, projects.data]);
+
+  const template = templates.data?.find((x) => x.id === templateId);
+  function applyTemplate(id: string) {
+    setTemplateId(id);
+    const tp = templates.data?.find((x) => x.id === id);
+    if (!tp) return;
+    if (tp.title) setTitle(tp.title);
+    setDescription(tp.description ?? "");
+    setType(tp.defaults.type ?? "task");
+    setPriority(tp.defaults.priority ?? 0);
+    setAssigneeId(tp.defaults.assigneeId ?? "");
+  }
 
   const create = useMutation({
     mutationFn: (input: Record<string, unknown>) => api.createIssue(slug, input),
@@ -46,14 +70,16 @@ export function NewIssueDialog({
 
   function submit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    const f = new FormData(e.currentTarget);
     create.mutate({
       projectId,
-      title: String(f.get("title")),
+      title,
       description: description || undefined,
-      type: f.get("type"),
-      priority: Number(f.get("priority")),
-      assigneeId: f.get("assigneeId") || null,
+      type,
+      priority,
+      assigneeId: assigneeId || null,
+      ...(template?.defaults.labelIds?.length ? { labelIds: template.defaults.labelIds } : {}),
+      ...(template?.defaults.estimate != null ? { estimate: template.defaults.estimate } : {}),
+      ...(template?.defaults.fields && Object.keys(template.defaults.fields).length ? { fields: template.defaults.fields } : {}),
       parentId: defaults.parentId,
       stateId: defaults.stateId,
       stay: !!defaults.parentId,
@@ -63,8 +89,20 @@ export function NewIssueDialog({
   return (
     <Dialog open={open} onClose={onClose} title={t("issues.newIssue")} wide>
       <form onSubmit={submit} className="space-y-3">
+        {!!templates.data?.length && (
+          <Select aria-label={t("templates.use")} value={templateId} onChange={(e) => applyTemplate(e.target.value)}>
+            <option value="">{t("templates.blank")}</option>
+            {templates.data.map((tp) => (
+              <option key={tp.id} value={tp.id}>
+                {tp.name}
+              </option>
+            ))}
+          </Select>
+        )}
         <input
           name="title"
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
           required
           maxLength={250}
           autoFocus
@@ -89,21 +127,21 @@ export function NewIssueDialog({
               </option>
             ))}
           </Select>
-          <Select name="type" aria-label={t("issueTypes.label")} defaultValue="task">
+          <Select name="type" aria-label={t("issueTypes.label")} value={type} onChange={(e) => setType(e.target.value)}>
             {ISSUE_TYPES.map((k) => (
               <option key={k} value={k}>
                 {t(`issueTypes.${k}`)}
               </option>
             ))}
           </Select>
-          <Select name="priority" aria-label={t("priority.label")} defaultValue="0">
+          <Select name="priority" aria-label={t("priority.label")} value={priority} onChange={(e) => setPriority(Number(e.target.value))}>
             {PRIORITY_KEYS.map((k, i) => (
               <option key={k} value={i}>
                 {t(`priority.${k}`)}
               </option>
             ))}
           </Select>
-          <Select name="assigneeId" aria-label={t("issues.assignee")} defaultValue="">
+          <Select name="assigneeId" aria-label={t("issues.assignee")} value={assigneeId} onChange={(e) => setAssigneeId(e.target.value)}>
             <option value="">{t("issues.unassigned")}</option>
             {(members.data ?? []).map((m) => (
               <option key={m.userId} value={m.userId}>

@@ -15,11 +15,13 @@ import { IssuePage } from "./pages/issue";
 import { MyIssuesPage } from "./pages/my-issues";
 import { ProjectPage } from "./pages/project";
 import { ProjectsPage } from "./pages/projects";
+import { ReportsPage } from "./pages/reports";
 import { SettingsPage } from "./pages/settings";
 import { ViewsPage, WorkspaceCalendar } from "./pages/views";
 import { WorkspacesPage } from "./pages/workspaces";
 import { Shell } from "./shell";
 import { IntegrationsSettings, TokensSettings, WebhooksSettings } from "./components/dev";
+import { AutomationSettings, FieldsSettings, ImportSettings } from "./components/settings-extend";
 import { can } from "@veloq/core";
 
 function Settings() {
@@ -27,6 +29,9 @@ function Settings() {
   return (
     <SettingsPage
       extraTabs={[
+        { id: "fields", label: t("fields.title"), show: (r) => can(r, "field.manage"), render: (s) => <FieldsSettings slug={s} /> },
+        { id: "automation", label: t("automation.title"), show: (r) => can(r, "automation.manage"), render: (s) => <AutomationSettings slug={s} /> },
+        { id: "import", label: t("importer.title"), show: (r) => can(r, "import.run"), render: (s) => <ImportSettings slug={s} /> },
         { id: "integrations", label: t("integrations.title"), show: (r) => can(r, "integration.manage"), render: (s) => <IntegrationsSettings slug={s} /> },
         { id: "webhooks", label: t("webhooks.title"), show: (r) => can(r, "webhook.manage"), render: (s) => <WebhooksSettings slug={s} /> },
         { id: "tokens", label: t("tokens.title"), show: (r) => can(r, "token.manage"), render: (s) => <TokensSettings slug={s} /> },
@@ -65,12 +70,13 @@ const initiativesRoute = createRoute({ getParentRoute: () => wsRoute, path: "/in
 const calendarRoute = createRoute({ getParentRoute: () => wsRoute, path: "/calendar", component: WorkspaceCalendar });
 const docsRoute = createRoute({ getParentRoute: () => wsRoute, path: "/docs", component: DocsPage });
 const docRoute = createRoute({ getParentRoute: () => wsRoute, path: "/docs/$pageId", component: DocsPage });
+const reportsRoute = createRoute({ getParentRoute: () => wsRoute, path: "/reports", component: ReportsPage });
 const viewsRoute = createRoute({ getParentRoute: () => wsRoute, path: "/views", component: ViewsPage });
 const settingsRoute = createRoute({ getParentRoute: () => wsRoute, path: "/settings", component: Settings });
 
 const routeTree = rootRoute.addChildren([
   indexRoute,
-  wsRoute.addChildren([myIssuesRoute, inboxRoute, projectsRoute, projectRoute, issueRoute, viewsRoute, settingsRoute, initiativesRoute, calendarRoute, docsRoute, docRoute]),
+  wsRoute.addChildren([myIssuesRoute, inboxRoute, projectsRoute, projectRoute, issueRoute, viewsRoute, settingsRoute, initiativesRoute, calendarRoute, docsRoute, docRoute, reportsRoute]),
 ]);
 
 const router = createRouter({ routeTree });
