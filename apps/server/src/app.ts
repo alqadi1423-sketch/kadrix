@@ -1,14 +1,16 @@
-import { apiToken, user } from "@veloq/db";
+import { apiToken, user, userPreference } from "@veloq/db";
 import { and, eq, isNull } from "drizzle-orm";
 import { Hono } from "hono";
 import { secureHeaders } from "hono/secure-headers";
-import { type AppDeps, type Env, requireUser } from "./context.js";
+import { z } from "zod";
+import { type AppDeps, type Env, parseBody, requireUser } from "./context.js";
 import { hashToken } from "./crypto.js";
 import { ApiError, forbidden, unauthorized } from "./errors.js";
 import { openApiDocument } from "./openapi.js";
 import { clientIp, rateLimit } from "./ratelimit.js";
 import { devlinkRoutes } from "./routes/devlink.js";
 import { issueRoutes } from "./routes/issues.js";
+import { pageRoutes } from "./routes/pages.js";
 import { planningRoutes } from "./routes/planning.js";
 import { projectRoutes } from "./routes/projects.js";
 import { workspaceRoutes } from "./routes/workspaces.js";
@@ -70,6 +72,20 @@ export function createApp(deps: AppDeps) {
 
   app.get("/health", (c) => c.json({ ok: true, edition }));
   app.get("/me", (c) => c.json({ user: requireUser(c) }));
+  app.get("/me/preferences", async (c) => {
+    const u = requireUser(c);
+    const [p] = await db.select().from(userPreference).where(eq(userPreference.userId, u.id));
+    return c.json({ preferences: { locale: p?.locale ?? "en", emailDigest: p?.emailDigest ?? true } });
+  });
+  app.patch("/me/preferences", async (c) => {
+    const u = requireUser(c);
+    const input = await parseBody(c, z.object({ locale: z.enum(["ar", "en"]).optional(), emailDigest: z.boolean().optional() }));
+    await db
+      .insert(userPreference)
+      .values({ userId: u.id, ...input })
+      .onConflictDoUpdate({ target: userPreference.userId, set: input });
+    return c.json({ ok: true });
+  });
   app.get("/openapi.json", (c) => c.json(openApiDocument(deps.baseUrl)));
 
   app.route("/", workspaceRoutes(deps));
@@ -77,6 +93,7 @@ export function createApp(deps: AppDeps) {
   app.route("/", issueRoutes(deps));
   app.route("/", planningRoutes(deps));
   app.route("/", devlinkRoutes(deps));
+  app.route("/", pageRoutes(deps));
 
   return app;
 }

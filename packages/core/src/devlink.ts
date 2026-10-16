@@ -143,9 +143,13 @@ export const WEBHOOK_EVENTS = [
 ] as const;
 export type WebhookEvent = (typeof WEBHOOK_EVENTS)[number];
 
+export const WEBHOOK_FORMATS = ["veloq", "slack", "discord"] as const;
+
 export const createWebhookSchema = z.object({
   url: z.string().url().max(2000),
   events: z.array(z.enum(WEBHOOK_EVENTS)).min(1),
+  format: z.enum(WEBHOOK_FORMATS).default("veloq"),
+  locale: z.enum(["ar", "en"]).default("en"),
 });
 
 export const createIntegrationSchema = z.object({

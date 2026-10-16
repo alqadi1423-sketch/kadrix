@@ -30,8 +30,19 @@ export const issueColumns = {
   labelIds: sql<string[]>`coalesce((select array_agg(${issueLabel.labelId}) from ${issueLabel} where ${issueLabel.issueId} = ${issue.id}), '{}')`,
 };
 
-export function issueFilterWhere(workspaceId: string, f: IssueFilter): SQL {
-  const conds: (SQL | undefined)[] = [eq(issue.workspaceId, workspaceId)];
+/** A workspace id, or a membership that may limit which projects are visible. */
+export type Scope = string | { workspaceId: string; projectIds?: string[] | null };
+
+export function scopeWhere(scope: Scope): SQL {
+  if (typeof scope === "string") return eq(issue.workspaceId, scope);
+  const ws = eq(issue.workspaceId, scope.workspaceId);
+  if (!scope.projectIds) return ws;
+  // Guests: only their projects. An empty list matches nothing.
+  return scope.projectIds.length ? and(ws, inArray(issue.projectId, scope.projectIds))! : sql`false`;
+}
+
+export function issueFilterWhere(scope: Scope, f: IssueFilter): SQL {
+  const conds: (SQL | undefined)[] = [scopeWhere(scope)];
   if (f.projectId) conds.push(eq(issue.projectId, f.projectId));
   if (f.stateId?.length) conds.push(inArray(issue.stateId, f.stateId));
   if (f.stateCategory?.length) conds.push(inArray(workflowState.category, f.stateCategory));
@@ -75,28 +86,28 @@ export function issueFilterWhere(workspaceId: string, f: IssueFilter): SQL {
   return and(...conds)!;
 }
 
-export async function listIssues(db: Database, workspaceId: string, f: IssueFilter, limit = 500, offset = 0) {
+export async function listIssues(db: Database, scope: Scope, f: IssueFilter, limit = 500, offset = 0) {
   const rows = await db
     .select(issueColumns)
     .from(issue)
     .innerJoin(project, eq(project.id, issue.projectId))
     .innerJoin(workflowState, eq(workflowState.id, issue.stateId))
     .leftJoin(user, eq(user.id, issue.assigneeId))
-    .where(issueFilterWhere(workspaceId, f))
+    .where(issueFilterWhere(scope, f))
     .orderBy(asc(issue.sortOrder), desc(issue.createdAt))
     .limit(limit)
     .offset(offset);
   return rows.map(withKey);
 }
 
-export async function getIssue(db: Database, workspaceId: string, where: SQL) {
+export async function getIssue(db: Database, scope: Scope, where: SQL) {
   const [row] = await db
     .select({ ...issueColumns, description: issue.description, creatorId: issue.creatorId })
     .from(issue)
     .innerJoin(project, eq(project.id, issue.projectId))
     .innerJoin(workflowState, eq(workflowState.id, issue.stateId))
     .leftJoin(user, eq(user.id, issue.assigneeId))
-    .where(and(eq(issue.workspaceId, workspaceId), where));
+    .where(and(scopeWhere(scope), where));
   return row ? withKey(row) : null;
 }
 
@@ -104,7 +115,7 @@ export function withKey<T extends { projectKey: string; number: number }>(r: T) 
   return { ...r, key: issueKey(r.projectKey, r.number) };
 }
 
-export async function listIssuesByIds(db: Database, workspaceId: string, ids: string[]) {
+export async function listIssuesByIds(db: Database, scope: Scope, ids: string[]) {
   if (ids.length === 0) return [];
   const rows = await db
     .select(issueColumns)
@@ -112,6 +123,6 @@ export async function listIssuesByIds(db: Database, workspaceId: string, ids: st
     .innerJoin(project, eq(project.id, issue.projectId))
     .innerJoin(workflowState, eq(workflowState.id, issue.stateId))
     .leftJoin(user, eq(user.id, issue.assigneeId))
-    .where(and(eq(issue.workspaceId, workspaceId), inArray(issue.id, ids)));
+    .where(and(scopeWhere(scope), inArray(issue.id, ids)));
   return rows.map(withKey);
 }

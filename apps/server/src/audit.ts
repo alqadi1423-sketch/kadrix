@@ -6,6 +6,7 @@ export type AuditAction =
   | "member.added"
   | "member.roleChanged"
   | "member.removed"
+  | "member.projectsChanged"
   | "project.created"
   | "project.deleted"
   | "token.created"

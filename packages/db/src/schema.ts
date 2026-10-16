@@ -530,6 +530,8 @@ export const webhook = pgTable(
     events: text("events").array().notNull(),
     /** Payload shape: "veloq" (JSON), "slack" or "discord" (chat message). */
     format: text("format").notNull().default("veloq"),
+    /** Language for chat messages (Slack/Discord). */
+    locale: text("locale").notNull().default("en"),
     active: boolean("active").notNull().default(true),
     createdBy: text("created_by").references(() => user.id, { onDelete: "set null" }),
     createdAt: createdAt(),

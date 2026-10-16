@@ -1,9 +1,10 @@
 import type { WebhookEvent } from "@veloq/core";
-import { webhook, webhookDelivery, type Database } from "@veloq/db";
+import { webhook, webhookDelivery, workspace, type Database } from "@veloq/db";
 import { and, eq, lte, sql } from "drizzle-orm";
 import type { Db } from "../context.js";
 import { hmacSha256, type Sealer } from "../crypto.js";
 import { assertSafeUrl, createSafeFetch } from "../ssrf.js";
+import { chatBody, chatText } from "./chat-format.js";
 
 export const MAX_ATTEMPTS = 8;
 
@@ -32,6 +33,8 @@ export interface DeliveryOptions {
   allowPrivate: boolean;
   fetchImpl?: typeof fetch;
   batch?: number;
+  /** Used for links in chat messages. */
+  baseUrl?: string;
 }
 
 /**
@@ -50,9 +53,13 @@ export async function processDeliveries(db: Database, opts: DeliveryOptions): Pr
         attempts: webhookDelivery.attempts,
         url: webhook.url,
         secret: webhook.secret,
+        format: webhook.format,
+        locale: webhook.locale,
+        slug: workspace.slug,
       })
       .from(webhookDelivery)
       .innerJoin(webhook, eq(webhook.id, webhookDelivery.webhookId))
+      .innerJoin(workspace, eq(workspace.id, webhookDelivery.workspaceId))
       .where(and(eq(webhookDelivery.status, "pending"), lte(webhookDelivery.nextAttemptAt, new Date())))
       .limit(opts.batch ?? 20)
       .for("update", { skipLocked: true, of: webhookDelivery });
@@ -68,7 +75,12 @@ export async function processDeliveries(db: Database, opts: DeliveryOptions): Pr
 
   for (const d of claimed) {
     const attempts = d.attempts + 1;
-    const body = JSON.stringify({ id: d.id, ...d.payload });
+    const body =
+      d.format === "slack" || d.format === "discord"
+        ? JSON.stringify(
+            chatBody(d.format, chatText(d.payload as { event: string; data: Record<string, unknown> }, d.locale, opts.baseUrl ?? "", d.slug)),
+          )
+        : JSON.stringify({ id: d.id, ...d.payload });
     let status: number | null = null;
     let error: string | null = null;
     try {

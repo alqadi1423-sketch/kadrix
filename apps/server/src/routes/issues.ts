@@ -22,7 +22,7 @@ import {
 import { and, asc, desc, eq, inArray, isNull, or } from "drizzle-orm";
 import { Hono } from "hono";
 import { z } from "zod";
-import { type AppDeps, type Env, assertCan, parseBody, parseQuery, requireUser, workspaceGuard } from "../context.js";
+import { type AppDeps, type Env, type Membership, assertCan, parseBody, parseQuery, requireUser, seesProject, workspaceGuard } from "../context.js";
 import { ApiError, forbidden, invalid, notFound } from "../errors.js";
 import { addComment, createIssue, updateIssue } from "../services/issues.js";
 import { getIssue, listIssues, listIssuesByIds } from "../services/query.js";
@@ -35,12 +35,13 @@ export function issueRoutes(deps: AppDeps) {
   const guard = (a: Parameters<typeof workspaceGuard>[1]) => workspaceGuard(db, a);
   const ctxOf = (workspaceId: string, actorId: string) => ({ db, events, workspaceId, actorId });
 
-  async function issueInWs(workspaceId: string, id: string) {
+  async function issueInWs(m: Membership, id: string) {
+    if (!z.string().uuid().safeParse(id).success) throw notFound();
     const [row] = await db
       .select({ id: issue.id, projectId: issue.projectId })
       .from(issue)
-      .where(and(eq(issue.id, id), eq(issue.workspaceId, workspaceId)));
-    if (!row) throw notFound();
+      .where(and(eq(issue.id, id), eq(issue.workspaceId, m.workspaceId)));
+    if (!row || !seesProject(m, row.projectId)) throw notFound();
     return row;
   }
 
@@ -57,21 +58,21 @@ export function issueRoutes(deps: AppDeps) {
     const filter = parseQuery(raw, issueFilterSchema);
     const limit = Math.min(Number(c.req.query("limit") ?? 500) || 500, 1000);
     const offset = Math.max(Number(c.req.query("offset") ?? 0) || 0, 0);
-    return c.json({ issues: await listIssues(db, m.workspaceId, filter, limit, offset) });
+    return c.json({ issues: await listIssues(db, m, filter, limit, offset) });
   });
 
   app.post("/workspaces/:slug/issues", guard("issue.create"), async (c) => {
     const m = c.get("membership");
     const input = await parseBody(c, createIssueSchema);
     const row = await createIssue(ctxOf(m.workspaceId, requireUser(c).id), input);
-    return c.json({ issue: await getIssue(db, m.workspaceId, eq(issue.id, row.id)) }, 201);
+    return c.json({ issue: await getIssue(db, m, eq(issue.id, row.id)) }, 201);
   });
 
   app.get("/workspaces/:slug/issues/key/:key", guard("issue.read"), async (c) => {
     const m = c.get("membership");
     const k = parseIssueKey(c.req.param("key"));
     if (!k) throw notFound();
-    const row = await getIssue(db, m.workspaceId, and(eq(project.key, k.key), eq(issue.number, k.number))!);
+    const row = await getIssue(db, m, and(eq(project.key, k.key), eq(issue.number, k.number))!);
     if (!row) throw notFound();
     return c.json({ issue: row });
   });
@@ -80,10 +81,10 @@ export function issueRoutes(deps: AppDeps) {
     const m = c.get("membership");
     const id = c.req.param("id");
     if (!z.string().uuid().safeParse(id).success) throw notFound();
-    const row = await getIssue(db, m.workspaceId, eq(issue.id, id));
+    const row = await getIssue(db, m, eq(issue.id, id));
     if (!row) throw notFound();
     const [children, relations, subscribed] = await Promise.all([
-      listIssues(db, m.workspaceId, { parentId: id, includeClosed: true }),
+      listIssues(db, m, { parentId: id, includeClosed: true }),
       db
         .select({ id: issueRelation.id, type: issueRelation.type, issueId: issueRelation.issueId, relatedIssueId: issueRelation.relatedIssueId })
         .from(issueRelation)
@@ -94,7 +95,7 @@ export function issueRoutes(deps: AppDeps) {
         .where(and(eq(issueSubscriber.issueId, id), eq(issueSubscriber.userId, requireUser(c).id))),
     ]);
     const relatedIds = [...new Set(relations.flatMap((r) => [r.issueId, r.relatedIssueId]))].filter((x) => x !== id);
-    const related = await listIssuesByIds(db, m.workspaceId, relatedIds);
+    const related = await listIssuesByIds(db, m, relatedIds);
     return c.json({ issue: row, children, relations, related, subscribed: subscribed.length > 0 });
   });
 
@@ -102,7 +103,7 @@ export function issueRoutes(deps: AppDeps) {
     const m = c.get("membership");
     const input = await parseBody(c, updateIssueSchema);
     await updateIssue(ctxOf(m.workspaceId, requireUser(c).id), c.req.param("id"), input);
-    return c.json({ issue: await getIssue(db, m.workspaceId, eq(issue.id, c.req.param("id"))) });
+    return c.json({ issue: await getIssue(db, m, eq(issue.id, c.req.param("id"))) });
   });
 
   /** Apply one patch to many issues (board/list multi-select). */
@@ -119,9 +120,9 @@ export function issueRoutes(deps: AppDeps) {
 
   app.delete("/workspaces/:slug/issues/:id", guard("issue.delete"), async (c) => {
     const m = c.get("membership");
-    const found = await issueInWs(m.workspaceId, c.req.param("id"));
+    const found = await issueInWs(m, c.req.param("id"));
     const files = await db.select({ key: attachment.storageKey }).from(attachment).where(eq(attachment.issueId, found.id));
-    const gone = await getIssue(db, m.workspaceId, eq(issue.id, found.id));
+    const gone = await getIssue(db, m, eq(issue.id, found.id));
     await db.transaction(async (tx) => {
       await enqueueWebhooks(tx, m.workspaceId, "issue.deleted", { issue: gone, actorId: requireUser(c).id });
       await tx.delete(issue).where(eq(issue.id, found.id));
@@ -133,7 +134,7 @@ export function issueRoutes(deps: AppDeps) {
 
   app.get("/workspaces/:slug/issues/:id/activity", guard("issue.read"), async (c) => {
     const m = c.get("membership");
-    const found = await issueInWs(m.workspaceId, c.req.param("id"));
+    const found = await issueInWs(m, c.req.param("id"));
     const rows = await db
       .select({
         id: issueActivity.id,
@@ -156,7 +157,7 @@ export function issueRoutes(deps: AppDeps) {
 
   app.get("/workspaces/:slug/issues/:id/comments", guard("issue.read"), async (c) => {
     const m = c.get("membership");
-    const found = await issueInWs(m.workspaceId, c.req.param("id"));
+    const found = await issueInWs(m, c.req.param("id"));
     const rows = await db
       .select({
         id: comment.id,
@@ -176,6 +177,7 @@ export function issueRoutes(deps: AppDeps) {
   app.post("/workspaces/:slug/issues/:id/comments", guard("comment.create"), async (c) => {
     const m = c.get("membership");
     const { body } = await parseBody(c, commentSchema);
+    await issueInWs(m, c.req.param("id"));
     const row = await addComment(ctxOf(m.workspaceId, requireUser(c).id), c.req.param("id"), body);
     return c.json({ comment: row }, 201);
   });
@@ -209,6 +211,7 @@ export function issueRoutes(deps: AppDeps) {
       .from(comment)
       .where(and(eq(comment.id, c.req.param("commentId")), eq(comment.workspaceId, m.workspaceId)));
     if (!row) throw notFound();
+    await issueInWs(m, row.issueId);
     if (row.authorId !== u.id) assertCan(c, "issue.delete");
     await db.delete(comment).where(eq(comment.id, row.id));
     await events.publish({ workspaceId: m.workspaceId, entity: "comment", id: row.issueId }).catch(() => {});
@@ -219,9 +222,9 @@ export function issueRoutes(deps: AppDeps) {
 
   app.post("/workspaces/:slug/issues/:id/relations", guard("issue.update"), async (c) => {
     const m = c.get("membership");
-    const a = await issueInWs(m.workspaceId, c.req.param("id"));
+    const a = await issueInWs(m, c.req.param("id"));
     const input = await parseBody(c, relationSchema);
-    const b = await issueInWs(m.workspaceId, input.relatedIssueId).catch(() => {
+    const b = await issueInWs(m, input.relatedIssueId).catch(() => {
       throw invalid();
     });
     if (a.id === b.id) throw invalid();
@@ -249,14 +252,14 @@ export function issueRoutes(deps: AppDeps) {
 
   app.put("/workspaces/:slug/issues/:id/subscription", guard("issue.read"), async (c) => {
     const m = c.get("membership");
-    const found = await issueInWs(m.workspaceId, c.req.param("id"));
+    const found = await issueInWs(m, c.req.param("id"));
     await db.insert(issueSubscriber).values({ issueId: found.id, userId: requireUser(c).id }).onConflictDoNothing();
     return c.json({ subscribed: true });
   });
 
   app.delete("/workspaces/:slug/issues/:id/subscription", guard("issue.read"), async (c) => {
     const m = c.get("membership");
-    const found = await issueInWs(m.workspaceId, c.req.param("id"));
+    const found = await issueInWs(m, c.req.param("id"));
     await db
       .delete(issueSubscriber)
       .where(and(eq(issueSubscriber.issueId, found.id), eq(issueSubscriber.userId, requireUser(c).id)));
@@ -267,7 +270,7 @@ export function issueRoutes(deps: AppDeps) {
 
   app.get("/workspaces/:slug/issues/:id/attachments", guard("issue.read"), async (c) => {
     const m = c.get("membership");
-    const found = await issueInWs(m.workspaceId, c.req.param("id"));
+    const found = await issueInWs(m, c.req.param("id"));
     const rows = await db
       .select({
         id: attachment.id,
@@ -286,7 +289,7 @@ export function issueRoutes(deps: AppDeps) {
 
   app.post("/workspaces/:slug/issues/:id/attachments", guard("issue.update"), async (c) => {
     const m = c.get("membership");
-    const found = await issueInWs(m.workspaceId, c.req.param("id"));
+    const found = await issueInWs(m, c.req.param("id"));
     const len = Number(c.req.header("content-length") ?? 0);
     if (len > MAX_UPLOAD_BYTES + 10_000) throw new ApiError(413, "tooLarge");
     const form = await c.req.formData().catch(() => null);
@@ -318,6 +321,7 @@ export function issueRoutes(deps: AppDeps) {
       .from(attachment)
       .where(and(eq(attachment.id, c.req.param("attachmentId")), eq(attachment.workspaceId, m.workspaceId)));
     if (!row) throw notFound();
+    if (row.issueId) await issueInWs(m, row.issueId);
     const data = await storage.get(row.storageKey);
     // Always download, never render inline: uploaded HTML/SVG must not run on our origin.
     return new Response(data, {

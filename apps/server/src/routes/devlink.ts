@@ -27,7 +27,7 @@ import { and, asc, desc, eq, inArray, isNull, sql } from "drizzle-orm";
 import { Hono } from "hono";
 import { z } from "zod";
 import { recordAudit } from "../audit.js";
-import { type AppDeps, type Env, parseBody, requireUser, workspaceGuard } from "../context.js";
+import { type AppDeps, type Env, type Membership, parseBody, requireUser, seesProject, workspaceGuard } from "../context.js";
 import { generateToken, hmacSha256, randomSecret, safeEqual } from "../crypto.js";
 import { ApiError, invalid, notFound, unauthorized } from "../errors.js";
 import { updateIssue } from "../services/issues.js";
@@ -114,6 +114,8 @@ export function devlinkRoutes(deps: AppDeps) {
         id: webhook.id,
         url: webhook.url,
         events: webhook.events,
+        format: webhook.format,
+        locale: webhook.locale,
         active: webhook.active,
         createdAt: webhook.createdAt,
         failing: sql<number>`(select count(*) from ${webhookDelivery} d where d.webhook_id = ${webhook.id} and d.status = 'failed' and d.created_at > now() - interval '1 day')`,
@@ -136,6 +138,8 @@ export function devlinkRoutes(deps: AppDeps) {
         workspaceId: m.workspaceId,
         url: input.url,
         events: [...new Set(input.events)],
+        format: input.format,
+        locale: input.locale,
         secret: sealer.seal(secret),
         createdBy: requireUser(c).id,
       })
@@ -146,7 +150,16 @@ export function devlinkRoutes(deps: AppDeps) {
 
   app.patch("/workspaces/:slug/webhooks/:id", guard("webhook.manage"), async (c) => {
     const m = c.get("membership");
-    const input = await parseBody(c, createWebhookSchema.partial().extend({ active: z.boolean().optional() }));
+    const input = await parseBody(
+      c,
+      z.object({
+        url: z.string().url().max(2000).optional(),
+        events: createWebhookSchema.shape.events.optional(),
+        format: createWebhookSchema.shape.format.unwrap().optional(),
+        locale: createWebhookSchema.shape.locale.unwrap().optional(),
+        active: z.boolean().optional(),
+      }),
+    );
     if (input.url) await checkUrl(input.url);
     const [row] = await db
       .update(webhook)
@@ -352,7 +365,7 @@ export function devlinkRoutes(deps: AppDeps) {
 
   app.get("/workspaces/:slug/issues/:id/links", guard("issue.read"), async (c) => {
     const m = c.get("membership");
-    const row = await getIssue(db, m.workspaceId, eq(issue.id, c.req.param("id")));
+    const row = await getIssue(db, m, eq(issue.id, c.req.param("id")));
     if (!row) throw notFound();
     const links = await db
       .select()
@@ -364,18 +377,18 @@ export function devlinkRoutes(deps: AppDeps) {
 
   /* ------------------------------ releases ------------------------------ */
 
-  async function projectIn(workspaceId: string, projectId: string) {
+  async function projectIn(m: Membership, projectId: string) {
     const [p] = await db
       .select()
       .from(project)
-      .where(and(eq(project.id, projectId), eq(project.workspaceId, workspaceId)));
-    if (!p) throw notFound();
+      .where(and(eq(project.id, projectId), eq(project.workspaceId, m.workspaceId)));
+    if (!p || !seesProject(m, p.id)) throw notFound();
     return p;
   }
 
   app.get("/workspaces/:slug/projects/:projectId/releases", guard("issue.read"), async (c) => {
     const m = c.get("membership");
-    const p = await projectIn(m.workspaceId, c.req.param("projectId"));
+    const p = await projectIn(m, c.req.param("projectId"));
     const rows = await db
       .select({
         id: release.id,
@@ -398,8 +411,8 @@ export function devlinkRoutes(deps: AppDeps) {
    */
   app.get("/workspaces/:slug/projects/:projectId/releases/draft", guard("issue.read"), async (c) => {
     const m = c.get("membership");
-    const p = await projectIn(m.workspaceId, c.req.param("projectId"));
-    const done = await listIssues(db, m.workspaceId, { projectId: p.id, stateCategory: ["completed"] }, 1000);
+    const p = await projectIn(m, c.req.param("projectId"));
+    const done = await listIssues(db, m, { projectId: p.id, stateCategory: ["completed"] }, 1000);
     const released = done.length
       ? await db
           .select({ id: releaseIssue.issueId })
@@ -413,7 +426,7 @@ export function devlinkRoutes(deps: AppDeps) {
 
   app.post("/workspaces/:slug/projects/:projectId/releases", guard("planning.manage"), async (c) => {
     const m = c.get("membership");
-    const p = await projectIn(m.workspaceId, c.req.param("projectId"));
+    const p = await projectIn(m, c.req.param("projectId"));
     const { issueIds = [], ...input } = await parseBody(c, releaseSchema);
     if (issueIds.length) {
       const rows = await db
@@ -463,9 +476,9 @@ export function devlinkRoutes(deps: AppDeps) {
       .select()
       .from(release)
       .where(and(eq(release.id, c.req.param("id")), eq(release.workspaceId, m.workspaceId)));
-    if (!r) throw notFound();
+    if (!r || !seesProject(m, r.projectId)) throw notFound();
     const ids = await db.select({ id: releaseIssue.issueId }).from(releaseIssue).where(eq(releaseIssue.releaseId, r.id));
-    const items = ids.length ? await listIssues(db, m.workspaceId, { projectId: r.projectId, includeClosed: true }, 2000) : [];
+    const items = ids.length ? await listIssues(db, m, { projectId: r.projectId, includeClosed: true }, 2000) : [];
     const set = new Set(ids.map((x) => x.id));
     return c.json({ release: r, issues: items.filter((i) => set.has(i.id)) });
   });
@@ -496,7 +509,7 @@ export function devlinkRoutes(deps: AppDeps) {
       event: "ping",
       payload: { event: "ping", createdAt: new Date().toISOString(), data: {} },
     });
-    await processDeliveries(db, { sealer, allowPrivate: deps.allowPrivateWebhooks, fetchImpl: deps.webhookFetch });
+    await processDeliveries(db, { sealer, allowPrivate: deps.allowPrivateWebhooks, fetchImpl: deps.webhookFetch, baseUrl });
     return c.json({ ok: true });
   });
 

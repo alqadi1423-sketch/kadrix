@@ -148,7 +148,7 @@ describe("initiatives", () => {
     await w.owner.call("POST", "/workspaces/acme/updates", { initiativeId: ini.id, health: "atRisk", body: "API is late" });
     const list = await w.owner.json<{ initiatives: { total: number; done: number; health: string }[] }>("GET", "/workspaces/acme/initiatives");
     expect(list.data.initiatives[0]).toMatchObject({ total: 2, done: 1, health: "atRisk" });
-    const ups = await w.guest.json<{ updates: { body: string }[] }>("GET", `/workspaces/acme/updates?initiativeId=${ini.id}`);
+    const ups = await w.owner.json<{ updates: { body: string }[] }>("GET", `/workspaces/acme/updates?initiativeId=${ini.id}`);
     expect(ups.data.updates.map((u) => u.body)).toEqual(["API is late"]);
   });
 

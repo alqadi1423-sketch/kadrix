@@ -7,10 +7,12 @@ import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { createApp } from "./app.js";
 import { createSealer } from "./crypto.js";
+import { createMailer, startDigestWorker } from "./services/digest.js";
 import { startDeliveryWorker } from "./services/webhooks.js";
 import { createAuth } from "./auth.js";
 import { loadConfig } from "./config.js";
 import { createPgEventBus } from "./events.js";
+import { mountCollab } from "./collab.js";
 import { mountRealtime } from "./realtime.js";
 import { createDiskStorage } from "./storage.js";
 
@@ -23,11 +25,15 @@ const auth = createAuth(db, { secret: config.authSecret, baseUrl: config.baseUrl
 const events = createPgEventBus(config.databaseUrl);
 const storage = createDiskStorage(config.dataDir);
 const sealer = createSealer(config.authSecret);
-startDeliveryWorker(db, { sealer, allowPrivate: config.allowPrivateWebhooks });
+startDeliveryWorker(db, { sealer, allowPrivate: config.allowPrivateWebhooks, baseUrl: config.baseUrl });
+
+const mailer = await createMailer(config.smtpUrl, config.mailFrom);
+if (mailer) startDigestWorker(db, mailer, config.baseUrl);
 
 const root = new Hono();
 const { injectWebSocket, upgradeWebSocket } = createNodeWebSocket({ app: root });
 mountRealtime(root, upgradeWebSocket, { db, auth, events });
+mountCollab(root, upgradeWebSocket, { db, auth, events });
 root.route(
   "/",
   createApp({

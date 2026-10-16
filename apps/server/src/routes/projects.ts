@@ -8,10 +8,10 @@ import {
 } from "@veloq/core";
 import { issue, label, project, workflowState } from "@veloq/db";
 import { messages } from "@veloq/i18n";
-import { and, asc, count, eq, isNull, sql } from "drizzle-orm";
+import { and, asc, count, eq, inArray, isNull, sql } from "drizzle-orm";
 import { Hono, type Context } from "hono";
 import { recordAudit } from "../audit.js";
-import { type AppDeps, type Env, parseBody, requireUser, workspaceGuard } from "../context.js";
+import { type AppDeps, type Env, type Membership, parseBody, requireUser, seesProject, workspaceGuard } from "../context.js";
 import { ApiError, invalid, notFound } from "../errors.js";
 
 /** Picks the request language for data created on the user's behalf. */
@@ -26,12 +26,12 @@ export function projectRoutes({ db, events }: AppDeps) {
   const publish = (workspaceId: string, entity: string, id?: string) =>
     events.publish({ workspaceId, entity, id }).catch(() => {});
 
-  async function loadProject(workspaceId: string, projectId: string) {
+  async function loadProject(m: Membership, projectId: string) {
     const [p] = await db
       .select()
       .from(project)
-      .where(and(eq(project.id, projectId), eq(project.workspaceId, workspaceId)));
-    if (!p) throw notFound();
+      .where(and(eq(project.id, projectId), eq(project.workspaceId, m.workspaceId)));
+    if (!p || !seesProject(m, p.id)) throw notFound();
     return p;
   }
 
@@ -43,7 +43,13 @@ export function projectRoutes({ db, events }: AppDeps) {
     const rows = await db
       .select()
       .from(project)
-      .where(and(eq(project.workspaceId, m.workspaceId), includeArchived ? undefined : isNull(project.archivedAt)))
+      .where(
+        and(
+          eq(project.workspaceId, m.workspaceId),
+          includeArchived ? undefined : isNull(project.archivedAt),
+          m.projectIds ? (m.projectIds.length ? inArray(project.id, m.projectIds) : sql`false`) : undefined,
+        ),
+      )
       .orderBy(asc(project.name));
     return c.json({ projects: rows });
   });
@@ -86,7 +92,7 @@ export function projectRoutes({ db, events }: AppDeps) {
 
   app.get("/workspaces/:slug/projects/:projectId", guard("issue.read"), async (c) => {
     const m = c.get("membership");
-    const p = await loadProject(m.workspaceId, c.req.param("projectId"));
+    const p = await loadProject(m, c.req.param("projectId"));
     const states = await db
       .select()
       .from(workflowState)
@@ -97,7 +103,7 @@ export function projectRoutes({ db, events }: AppDeps) {
 
   app.patch("/workspaces/:slug/projects/:projectId", guard("project.update"), async (c) => {
     const m = c.get("membership");
-    const p = await loadProject(m.workspaceId, c.req.param("projectId"));
+    const p = await loadProject(m, c.req.param("projectId"));
     const input = await parseBody(c, updateProjectSchema);
     const { archived, ...rest } = input;
     const [row] = await db
@@ -111,7 +117,7 @@ export function projectRoutes({ db, events }: AppDeps) {
 
   app.delete("/workspaces/:slug/projects/:projectId", guard("project.delete"), async (c) => {
     const m = c.get("membership");
-    const p = await loadProject(m.workspaceId, c.req.param("projectId"));
+    const p = await loadProject(m, c.req.param("projectId"));
     await db.transaction(async (tx) => {
       await tx.delete(project).where(eq(project.id, p.id));
       await recordAudit(tx, {
@@ -131,7 +137,7 @@ export function projectRoutes({ db, events }: AppDeps) {
 
   app.post("/workspaces/:slug/projects/:projectId/states", guard("workflow.manage"), async (c) => {
     const m = c.get("membership");
-    const p = await loadProject(m.workspaceId, c.req.param("projectId"));
+    const p = await loadProject(m, c.req.param("projectId"));
     const input = await parseBody(c, createStateSchema);
     const [max] = await db
       .select({ v: sql<number>`coalesce(max(${workflowState.position}), 0)` })
@@ -147,7 +153,7 @@ export function projectRoutes({ db, events }: AppDeps) {
 
   app.patch("/workspaces/:slug/projects/:projectId/states/:stateId", guard("workflow.manage"), async (c) => {
     const m = c.get("membership");
-    const p = await loadProject(m.workspaceId, c.req.param("projectId"));
+    const p = await loadProject(m, c.req.param("projectId"));
     const input = await parseBody(c, updateStateSchema);
     const [row] = await db
       .update(workflowState)
@@ -162,7 +168,7 @@ export function projectRoutes({ db, events }: AppDeps) {
   /** Deleting a state moves its issues to `moveTo` (required if any exist). */
   app.delete("/workspaces/:slug/projects/:projectId/states/:stateId", guard("workflow.manage"), async (c) => {
     const m = c.get("membership");
-    const p = await loadProject(m.workspaceId, c.req.param("projectId"));
+    const p = await loadProject(m, c.req.param("projectId"));
     const stateId = c.req.param("stateId");
     const moveTo = c.req.query("moveTo");
     await db.transaction(async (tx) => {

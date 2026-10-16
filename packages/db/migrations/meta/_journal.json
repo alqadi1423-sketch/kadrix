@@ -43,6 +43,13 @@
       "when": 1792166983058,
       "tag": "0005_collaboration",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1792167370920,
+      "tag": "0006_webhook_locale",
+      "breakpoints": true
     }
   ]
 }

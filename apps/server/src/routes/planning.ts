@@ -29,7 +29,7 @@ import {
 import { and, asc, count, desc, eq, gt, inArray, isNotNull, isNull, notInArray, sql } from "drizzle-orm";
 import { Hono } from "hono";
 import { z } from "zod";
-import { type AppDeps, type Env, parseBody, requireUser, workspaceGuard } from "../context.js";
+import { type AppDeps, type Env, type Membership, parseBody, requireUser, seesProject, workspaceGuard } from "../context.js";
 import { invalid, notFound } from "../errors.js";
 import { updateIssue } from "../services/issues.js";
 import { listIssues } from "../services/query.js";
@@ -41,12 +41,12 @@ export function planningRoutes(deps: AppDeps) {
   const publish = (workspaceId: string, entity: string, id?: string) =>
     events.publish({ workspaceId, entity, id }).catch(() => {});
 
-  async function projectIn(workspaceId: string, projectId: string) {
+  async function projectIn(m: Membership, projectId: string) {
     const [p] = await db
       .select()
       .from(project)
-      .where(and(eq(project.id, projectId), eq(project.workspaceId, workspaceId)));
-    if (!p) throw notFound();
+      .where(and(eq(project.id, projectId), eq(project.workspaceId, m.workspaceId)));
+    if (!p || !seesProject(m, p.id)) throw notFound();
     return p;
   }
   async function weekendOf(workspaceId: string) {
@@ -87,7 +87,7 @@ export function planningRoutes(deps: AppDeps) {
 
   app.get("/workspaces/:slug/projects/:projectId/cycles", guard("issue.read"), async (c) => {
     const m = c.get("membership");
-    const p = await projectIn(m.workspaceId, c.req.param("projectId"));
+    const p = await projectIn(m, c.req.param("projectId"));
     const rows = await db.select().from(cycle).where(eq(cycle.projectId, p.id)).orderBy(asc(cycle.startsOn));
     const stats = await cycleStats(m.workspaceId, rows.map((r) => r.id));
     const t = today();
@@ -104,7 +104,7 @@ export function planningRoutes(deps: AppDeps) {
 
   app.post("/workspaces/:slug/projects/:projectId/cycles", guard("planning.manage"), async (c) => {
     const m = c.get("membership");
-    const p = await projectIn(m.workspaceId, c.req.param("projectId"));
+    const p = await projectIn(m, c.req.param("projectId"));
     const input = await parseBody(c, createCycleSchema);
     const created = await db.transaction(async (tx) => {
       // Lock the project row so cycle numbers are handed out one at a time.
@@ -202,7 +202,7 @@ export function planningRoutes(deps: AppDeps) {
       .select()
       .from(cycle)
       .where(and(eq(cycle.id, c.req.param("cycleId")), eq(cycle.workspaceId, m.workspaceId)));
-    if (!cur) throw notFound();
+    if (!cur || !seesProject(m, cur.projectId)) throw notFound();
     const rows = await db
       .select({
         id: issue.id,
@@ -249,7 +249,7 @@ export function planningRoutes(deps: AppDeps) {
 
   app.get("/workspaces/:slug/projects/:projectId/milestones", guard("issue.read"), async (c) => {
     const m = c.get("membership");
-    const p = await projectIn(m.workspaceId, c.req.param("projectId"));
+    const p = await projectIn(m, c.req.param("projectId"));
     const rows = await db
       .select({
         id: milestone.id,
@@ -267,7 +267,7 @@ export function planningRoutes(deps: AppDeps) {
 
   app.post("/workspaces/:slug/projects/:projectId/milestones", guard("planning.manage"), async (c) => {
     const m = c.get("membership");
-    const p = await projectIn(m.workspaceId, c.req.param("projectId"));
+    const p = await projectIn(m, c.req.param("projectId"));
     const input = await parseBody(c, milestoneSchema);
     const [row] = await db.insert(milestone).values({ ...input, workspaceId: m.workspaceId, projectId: p.id }).returning();
     await publish(m.workspaceId, "milestone", row!.id);
@@ -306,9 +306,9 @@ export function planningRoutes(deps: AppDeps) {
    */
   app.get("/workspaces/:slug/projects/:projectId/timeline", guard("issue.read"), async (c) => {
     const m = c.get("membership");
-    const p = await projectIn(m.workspaceId, c.req.param("projectId"));
+    const p = await projectIn(m, c.req.param("projectId"));
     const weekend = await weekendOf(m.workspaceId);
-    const all = await listIssues(db, m.workspaceId, { projectId: p.id, includeClosed: true }, 2000);
+    const all = await listIssues(db, m, { projectId: p.id, includeClosed: true }, 2000);
     const dated = all.filter((i) => i.startDate || i.dueDate);
     const ids = dated.map((i) => i.id);
     const deps = ids.length
@@ -372,7 +372,16 @@ export function planningRoutes(deps: AppDeps) {
       })
       .from(initiative)
       .leftJoin(user, eq(user.id, initiative.ownerId))
-      .where(eq(initiative.workspaceId, m.workspaceId))
+      .where(
+        and(
+          eq(initiative.workspaceId, m.workspaceId),
+          m.projectIds
+            ? sql`exists (select 1 from ${initiativeProject} ip where ip.initiative_id = ${initiative.id} and ${
+                m.projectIds.length ? inArray(sql`ip.project_id`, m.projectIds) : sql`false`
+              })`
+            : undefined,
+        ),
+      )
       .orderBy(asc(initiative.targetDate), asc(initiative.name));
     return c.json({ initiatives: rows.map((r) => ({ ...r, total: Number(r.total), done: Number(r.done) })) });
   });
@@ -427,6 +436,10 @@ export function planningRoutes(deps: AppDeps) {
     const initiativeId = c.req.query("initiativeId");
     const projectId = c.req.query("projectId");
     if (!initiativeId && !projectId) throw invalid();
+    if (m.projectIds) {
+      // Guests read updates only for their projects.
+      if (initiativeId || !seesProject(m, projectId)) throw notFound();
+    }
     const rows = await db
       .select({
         id: statusUpdate.id,
@@ -457,7 +470,7 @@ export function planningRoutes(deps: AppDeps) {
     );
     if (!!input.initiativeId === !!input.projectId) throw invalid();
     if (input.initiativeId) await initiativeRow(m.workspaceId, input.initiativeId);
-    if (input.projectId) await projectIn(m.workspaceId, input.projectId);
+    if (input.projectId) await projectIn(m, input.projectId);
     const [row] = await db
       .insert(statusUpdate)
       .values({ ...input, workspaceId: m.workspaceId, authorId: requireUser(c).id })
@@ -490,6 +503,7 @@ export function planningRoutes(deps: AppDeps) {
           isNotNull(milestone.targetDate),
           sql`${milestone.targetDate} between ${q.data.from} and ${q.data.to}`,
           q.data.projectId ? eq(milestone.projectId, q.data.projectId) : undefined,
+          m.projectIds ? (m.projectIds.length ? inArray(milestone.projectId, m.projectIds) : sql`false`) : undefined,
         ),
       );
     return c.json({ issues: items, milestones: ms });

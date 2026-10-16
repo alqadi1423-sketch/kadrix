@@ -1,5 +1,5 @@
 import { can, type Action, type Edition, type Role } from "@veloq/core";
-import { workspace, workspaceMember, type Database } from "@veloq/db";
+import { projectAccess, workspace, workspaceMember, type Database } from "@veloq/db";
 import { and, eq } from "drizzle-orm";
 import type { Context, MiddlewareHandler } from "hono";
 import type { z } from "zod";
@@ -10,7 +10,11 @@ import type { EventBus } from "./events.js";
 import type { Storage } from "./storage.js";
 
 export type SessionUser = { id: string; name: string; email: string; kind?: "human" | "agent" };
-export type Membership = { workspaceId: string; slug: string; name: string; role: Role };
+/**
+ * `projectIds` is null for full members. For guests it lists the only
+ * projects they may see; every project-scoped query must respect it.
+ */
+export type Membership = { workspaceId: string; slug: string; name: string; role: Role; projectIds: string[] | null };
 
 export type Env = {
   Variables: {
@@ -81,11 +85,25 @@ export const workspaceGuard =
     const tokenWs = c.get("tokenWorkspaceId");
     if (tokenWs && tokenWs !== row.workspaceId) throw notFound();
     if (!can(row.role, action)) throw forbidden();
-    c.set("membership", row);
+    let projectIds: string[] | null = null;
+    if (row.role === "guest") {
+      const rows = await db
+        .select({ id: projectAccess.projectId })
+        .from(projectAccess)
+        .where(eq(projectAccess.userId, u.id));
+      projectIds = rows.map((r) => r.id);
+    }
+    c.set("membership", { ...row, projectIds });
     await next();
   };
 
 /** In-handler permission check for actions that depend on the request body. */
 export function assertCan(c: Context<Env>, action: Action) {
   if (!can(c.get("membership").role, action)) throw forbidden();
+}
+
+/** True when the membership may see this project. */
+export function seesProject(m: Pick<Membership, "projectIds">, projectId: string | null | undefined): boolean {
+  if (m.projectIds === null) return true;
+  return !!projectId && m.projectIds.includes(projectId);
 }

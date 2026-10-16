@@ -7,8 +7,8 @@ import {
   updateMemberRoleSchema,
   weekendSchema,
 } from "@veloq/core";
-import { auditLog, user, workspace, workspaceMember } from "@veloq/db";
-import { and, desc, eq } from "drizzle-orm";
+import { auditLog, project, projectAccess, user, workspace, workspaceMember } from "@veloq/db";
+import { and, desc, eq, inArray, sql } from "drizzle-orm";
 import { Hono } from "hono";
 import { z } from "zod";
 import { recordAudit } from "../audit.js";
@@ -83,7 +83,13 @@ export function workspaceRoutes({ db }: AppDeps) {
   app.get("/workspaces/:slug/members", guard("member.read"), async (c) => {
     const m = c.get("membership");
     const rows = await db
-      .select({ userId: user.id, name: user.name, email: user.email, role: workspaceMember.role })
+      .select({
+        userId: user.id,
+        name: user.name,
+        email: user.email,
+        role: workspaceMember.role,
+        projectIds: sql<string[] | null>`case when ${workspaceMember.role} = 'guest' then coalesce((select array_agg(pa.project_id) from ${projectAccess} pa join ${project} p on p.id = pa.project_id where pa.user_id = ${user.id} and p.workspace_id = ${m.workspaceId}), '{}') end`,
+      })
       .from(workspaceMember)
       .innerJoin(user, eq(user.id, workspaceMember.userId))
       .where(eq(workspaceMember.workspaceId, m.workspaceId))
@@ -159,6 +165,46 @@ export function workspaceRoutes({ db }: AppDeps) {
         targetType: "user",
         targetId: current.userId,
         data: { targetName: current.name },
+      });
+    });
+    return c.json({ ok: true });
+  });
+
+  /** Which projects a guest can see. Replaces the whole list. */
+  app.put("/workspaces/:slug/members/:userId/projects", guard("member.updateRole"), async (c) => {
+    const m = c.get("membership");
+    const { projectIds } = await parseBody(c, z.object({ projectIds: z.array(z.string().uuid()).max(200) }));
+    const userId = c.req.param("userId");
+    const [target] = await db
+      .select({ role: workspaceMember.role })
+      .from(workspaceMember)
+      .where(and(eq(workspaceMember.workspaceId, m.workspaceId), eq(workspaceMember.userId, userId)));
+    if (!target) throw notFound();
+    if (target.role !== "guest") throw new ApiError(400, "invalid");
+    const valid = projectIds.length
+      ? await db
+          .select({ id: project.id })
+          .from(project)
+          .where(and(eq(project.workspaceId, m.workspaceId), inArray(project.id, projectIds)))
+      : [];
+    if (valid.length !== new Set(projectIds).size) throw new ApiError(400, "invalid");
+    await db.transaction(async (tx) => {
+      const mine = await tx.select({ id: project.id }).from(project).where(eq(project.workspaceId, m.workspaceId));
+      if (mine.length) {
+        await tx
+          .delete(projectAccess)
+          .where(and(eq(projectAccess.userId, userId), inArray(projectAccess.projectId, mine.map((x) => x.id))));
+      }
+      if (projectIds.length) {
+        await tx.insert(projectAccess).values([...new Set(projectIds)].map((projectId) => ({ projectId, userId })));
+      }
+      await recordAudit(tx, {
+        workspaceId: m.workspaceId,
+        actorId: requireUser(c).id,
+        action: "member.projectsChanged",
+        targetType: "user",
+        targetId: userId,
+        data: { count: projectIds.length },
       });
     });
     return c.json({ ok: true });

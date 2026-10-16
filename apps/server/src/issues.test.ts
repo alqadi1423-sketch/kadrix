@@ -22,6 +22,8 @@ async function world() {
     name: "Platform",
     key: "plt",
   });
+  // Guests only see projects they are given.
+  await owner.call("PUT", `/workspaces/acme/members/${guest.id}/projects`, { projectIds: [p.data.project.id] });
   const detail = await owner.json<{ states: State[] }>("GET", `/workspaces/acme/projects/${p.data.project.id}`);
   const states = detail.data.states;
   const byCat = (c: string) => states.find((s) => s.category === c)!;
