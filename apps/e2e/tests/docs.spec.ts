@@ -22,9 +22,9 @@ test("two people edit one page at the same time, and issue keys link both ways",
   // Wait for the whole sentence so B does not type while A's text is still arriving.
   await expect(editorB).toContainText("نبدأ بإصلاح WEB-1 قبل الإطلاق", { timeout: 10_000 });
 
-  await editorB.click();
-  // Go to the very end of the document before adding a paragraph.
-  await b.page.keyboard.press("Control+End");
+  // Click into the sentence itself, then go to its end, before adding a paragraph.
+  await editorB.locator("p", { hasText: "نبدأ بإصلاح" }).click();
+  await b.page.keyboard.press("End");
   await b.page.keyboard.press("Enter");
   await b.page.keyboard.type("English line");
   await expect(editorA).toContainText("English line", { timeout: 10_000 });
