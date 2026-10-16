@@ -9,12 +9,13 @@ import { authClient } from "./api";
 import { WorkspaceLayout } from "./layout";
 import { AuthPage } from "./pages/auth";
 import { InboxPage } from "./pages/inbox";
+import { InitiativesPage } from "./pages/initiatives";
 import { IssuePage } from "./pages/issue";
 import { MyIssuesPage } from "./pages/my-issues";
 import { ProjectPage } from "./pages/project";
 import { ProjectsPage } from "./pages/projects";
 import { SettingsPage } from "./pages/settings";
-import { ViewsPage } from "./pages/views";
+import { ViewsPage, WorkspaceCalendar } from "./pages/views";
 import { WorkspacesPage } from "./pages/workspaces";
 import { Shell } from "./shell";
 
@@ -44,12 +45,14 @@ const inboxRoute = createRoute({ getParentRoute: () => wsRoute, path: "/inbox", 
 const projectsRoute = createRoute({ getParentRoute: () => wsRoute, path: "/projects", component: ProjectsPage });
 const projectRoute = createRoute({ getParentRoute: () => wsRoute, path: "/p/$projectId", component: ProjectPage });
 const issueRoute = createRoute({ getParentRoute: () => wsRoute, path: "/i/$key", component: IssuePage });
+const initiativesRoute = createRoute({ getParentRoute: () => wsRoute, path: "/initiatives", component: InitiativesPage });
+const calendarRoute = createRoute({ getParentRoute: () => wsRoute, path: "/calendar", component: WorkspaceCalendar });
 const viewsRoute = createRoute({ getParentRoute: () => wsRoute, path: "/views", component: ViewsPage });
 const settingsRoute = createRoute({ getParentRoute: () => wsRoute, path: "/settings", component: () => <SettingsPage /> });
 
 const routeTree = rootRoute.addChildren([
   indexRoute,
-  wsRoute.addChildren([myIssuesRoute, inboxRoute, projectsRoute, projectRoute, issueRoute, viewsRoute, settingsRoute]),
+  wsRoute.addChildren([myIssuesRoute, inboxRoute, projectsRoute, projectRoute, issueRoute, viewsRoute, settingsRoute, initiativesRoute, calendarRoute]),
 ]);
 
 const router = createRouter({ routeTree });

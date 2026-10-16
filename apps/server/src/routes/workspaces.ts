@@ -1,8 +1,11 @@
 import {
+  DEFAULT_WEEKEND_AR,
+  DEFAULT_WEEKEND_EN,
   addMemberSchema,
   canManageRole,
   createWorkspaceSchema,
   updateMemberRoleSchema,
+  weekendSchema,
 } from "@veloq/core";
 import { auditLog, user, workspace, workspaceMember } from "@veloq/db";
 import { and, desc, eq } from "drizzle-orm";
@@ -11,6 +14,7 @@ import { z } from "zod";
 import { recordAudit } from "../audit.js";
 import { type AppDeps, type Env, type Tx, parseBody, requireUser, workspaceGuard } from "../context.js";
 import { ApiError, forbidden, notFound } from "../errors.js";
+import { requestLocale } from "./projects.js";
 
 export function workspaceRoutes({ db }: AppDeps) {
   const app = new Hono<Env>();
@@ -31,8 +35,13 @@ export function workspaceRoutes({ db }: AppDeps) {
     const u = requireUser(c);
     if (c.get("tokenWorkspaceId")) throw forbidden();
     const input = await parseBody(c, createWorkspaceSchema);
+    const weekendDays = requestLocale(c) === "ar" ? DEFAULT_WEEKEND_AR : DEFAULT_WEEKEND_EN;
     const created = await db.transaction(async (tx) => {
-      const [ws] = await tx.insert(workspace).values(input).onConflictDoNothing({ target: workspace.slug }).returning();
+      const [ws] = await tx
+        .insert(workspace)
+        .values({ ...input, weekendDays })
+        .onConflictDoNothing({ target: workspace.slug })
+        .returning();
       if (!ws) throw new ApiError(409, "slugTaken");
       await tx.insert(workspaceMember).values({ workspaceId: ws.id, userId: u.id, role: "owner" });
       await recordAudit(tx, { workspaceId: ws.id, actorId: u.id, action: "workspace.created" });
@@ -41,13 +50,23 @@ export function workspaceRoutes({ db }: AppDeps) {
     return c.json({ workspace: { ...created, role: "owner" as const } }, 201);
   });
 
-  app.get("/workspaces/:slug", guard("workspace.read"), (c) => c.json({ workspace: c.get("membership") }));
+  app.get("/workspaces/:slug", guard("workspace.read"), async (c) => {
+    const m = c.get("membership");
+    const [w] = await db.select({ weekendDays: workspace.weekendDays }).from(workspace).where(eq(workspace.id, m.workspaceId));
+    return c.json({ workspace: { ...m, weekendDays: w?.weekendDays ?? [] } });
+  });
 
   app.patch("/workspaces/:slug", guard("workspace.update"), async (c) => {
     const m = c.get("membership");
-    const { name } = await parseBody(c, z.object({ name: z.string().trim().min(1).max(80) }));
-    await db.update(workspace).set({ name }).where(eq(workspace.id, m.workspaceId));
-    await recordAudit(db, { workspaceId: m.workspaceId, actorId: requireUser(c).id, action: "workspace.renamed", data: { name } });
+    const input = await parseBody(
+      c,
+      z.object({ name: z.string().trim().min(1).max(80).optional(), weekendDays: weekendSchema.optional() }),
+    );
+    if (input.weekendDays) input.weekendDays = [...new Set(input.weekendDays)].sort();
+    await db.update(workspace).set(input).where(eq(workspace.id, m.workspaceId));
+    if (input.name) {
+      await recordAudit(db, { workspaceId: m.workspaceId, actorId: requireUser(c).id, action: "workspace.renamed", data: { name: input.name } });
+    }
     return c.json({ ok: true });
   });
 

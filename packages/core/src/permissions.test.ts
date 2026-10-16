@@ -11,6 +11,7 @@ const MEMBER: Action[] = [
   "issue.create",
   "issue.update",
   "view.manage",
+  "planning.manage",
   "token.manage",
 ];
 const ADMIN: Action[] = [

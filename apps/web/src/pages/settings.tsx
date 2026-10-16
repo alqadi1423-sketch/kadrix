@@ -17,6 +17,7 @@ export function SettingsPage({ extraTabs = [] }: { extraTabs?: { id: string; lab
   const ws = useWorkspace(slug);
   const role = ws.data?.workspace.role;
   const tabs: { id: Tab; label: string; show: boolean }[] = [
+    { id: "general", label: t("workspaceSettings.general"), show: can(role, "workspace.update") },
     { id: "members", label: t("members.title"), show: can(role, "member.read") },
     { id: "labels", label: t("labels.title"), show: true },
     { id: "workflow", label: t("projects.workflow"), show: can(role, "workflow.manage") },
@@ -24,7 +25,7 @@ export function SettingsPage({ extraTabs = [] }: { extraTabs?: { id: string; lab
     { id: "audit", label: t("audit.title"), show: can(role, "audit.read") },
   ];
   const visible = tabs.filter((x) => x.show);
-  const [tab, setTab] = useState<Tab>("members");
+  const [tab, setTab] = useState<Tab>("");
   const current = visible.find((x) => x.id === tab)?.id ?? visible[0]?.id;
 
   if (!role) return <p className="text-muted">{t("common.loading")}</p>;
@@ -45,6 +46,7 @@ export function SettingsPage({ extraTabs = [] }: { extraTabs?: { id: string; lab
           </button>
         ))}
       </div>
+      {current === "general" && <General slug={slug} />}
       {current === "members" && <Members slug={slug} myRole={role} />}
       {current === "labels" && <Labels slug={slug} canManage={can(role, "label.manage")} />}
       {current === "workflow" && <Workflow slug={slug} />}
@@ -343,6 +345,61 @@ function Audit({ slug }: { slug: string }) {
           </li>
         ))}
       </ol>
+    </Panel>
+  );
+}
+
+function General({ slug }: { slug: string }) {
+  const { t, i18n } = useTranslation();
+  const qc = useQueryClient();
+  const ws = useWorkspace(slug);
+  const [saved, setSaved] = useState(false);
+  const save = useMutation({
+    mutationFn: (patch: { name?: string; weekendDays?: number[] }) => api.updateWorkspace(slug, patch),
+    onSuccess: () => {
+      setSaved(true);
+      void qc.invalidateQueries({ queryKey: keys.workspace(slug) });
+      void qc.invalidateQueries({ queryKey: ["workspaces"] });
+    },
+  });
+  if (!ws.data) return null;
+  const weekend = ws.data.workspace.weekendDays;
+  // Show the week starting on Sunday in Arabic and Monday in English.
+  const order = i18n.language === "ar" ? [0, 1, 2, 3, 4, 5, 6] : [1, 2, 3, 4, 5, 6, 0];
+  const dayName = (d: number) =>
+    new Intl.DateTimeFormat(i18n.language, { weekday: "long", timeZone: "UTC" }).format(new Date(Date.UTC(2026, 9, 18 + d)));
+  return (
+    <Panel title={t("workspaceSettings.general")}>
+      <form
+        className="space-y-6"
+        onSubmit={(e) => {
+          e.preventDefault();
+          const f = new FormData(e.currentTarget);
+          save.mutate({ name: String(f.get("name")), weekendDays: order.filter((d) => !f.getAll("work").includes(String(d))) });
+        }}
+        onChange={() => setSaved(false)}
+      >
+        <Field label={t("workspaces.name")} name="name" defaultValue={ws.data.workspace.name} required maxLength={80} dir="auto" />
+        <fieldset>
+          <legend className="mb-1 text-sm text-muted">{t("workspaceSettings.workingWeek")}</legend>
+          <div className="flex flex-wrap gap-2">
+            {order.map((d) => (
+              <label key={d} className="flex items-center gap-1.5 rounded-[var(--radius-control)] border border-line px-2 py-1 text-sm">
+                <input type="checkbox" name="work" value={d} defaultChecked={!weekend.includes(d)} className="accent-petrol" />
+                {dayName(d)}
+              </label>
+            ))}
+          </div>
+          <p className="mt-1 text-xs text-muted">{t("workspaceSettings.weekendHint")}</p>
+        </fieldset>
+        <div className="flex items-center gap-3">
+          <Button type="submit" disabled={save.isPending}>
+            {t("common.save")}
+          </Button>
+          {saved && <span role="status" className="text-sm text-muted">{t("workspaceSettings.saved")}</span>}
+          <ErrorText error={save.error} />
+        </div>
+      </form>
     </Panel>
   );
 }

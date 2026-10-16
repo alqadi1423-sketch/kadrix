@@ -1,6 +1,6 @@
 import { CLOSED_CATEGORIES, issueKey, type IssueFilter } from "@veloq/core";
 import { issue, issueLabel, project, user, workflowState, type Database } from "@veloq/db";
-import { and, asc, desc, eq, inArray, notInArray, or, sql, type SQL } from "drizzle-orm";
+import { and, asc, desc, eq, gte, inArray, lte, notInArray, or, sql, type SQL } from "drizzle-orm";
 
 /** Shape returned for issues everywhere in the API. */
 export const issueColumns = {
@@ -51,6 +51,9 @@ export function issueFilterWhere(workspaceId: string, f: IssueFilter): SQL {
   if (f.cycleId) conds.push(eq(issue.cycleId, f.cycleId));
   if (f.milestoneId) conds.push(eq(issue.milestoneId, f.milestoneId));
   if (f.parentId) conds.push(eq(issue.parentId, f.parentId));
+  if (f.dueFrom) conds.push(gte(issue.dueDate, f.dueFrom));
+  if (f.dueTo) conds.push(lte(issue.dueDate, f.dueTo));
+  if (f.updatedSince) conds.push(gte(issue.updatedAt, new Date(f.updatedSince)));
   if (f.labelId?.length) {
     conds.push(
       sql`exists (select 1 from ${issueLabel} where ${issueLabel.issueId} = ${issue.id} and ${inArray(issueLabel.labelId, f.labelId)})`,

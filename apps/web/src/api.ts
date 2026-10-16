@@ -148,6 +148,55 @@ export interface SavedView {
   ownerId: string;
 }
 
+export interface Cycle {
+  id: string;
+  number: number;
+  name: string | null;
+  startsOn: string;
+  endsOn: string;
+  completedAt: string | null;
+  status: "active" | "upcoming" | "completed" | "overdue";
+  total: number;
+  done: number;
+  points: number;
+  donePoints: number;
+}
+export interface Milestone {
+  id: string;
+  name: string;
+  description: string | null;
+  targetDate: string | null;
+  total: number;
+  done: number;
+}
+export interface Initiative {
+  id: string;
+  name: string;
+  description: string | null;
+  targetDate: string | null;
+  ownerName: string | null;
+  projectIds: string[];
+  total: number;
+  done: number;
+  health: "onTrack" | "atRisk" | "offTrack" | null;
+}
+export interface StatusUpdate {
+  id: string;
+  health: "onTrack" | "atRisk" | "offTrack";
+  body: string;
+  createdAt: string;
+  authorName: string | null;
+}
+export interface Timeline {
+  issues: Issue[];
+  undated: number;
+  dependencies: { from: string; to: string }[];
+  milestones: { id: string; name: string; targetDate: string | null }[];
+  criticalPath: string[];
+  criticalLength: number;
+  weekend: number[];
+}
+
 const ws = (slug: string) => `/workspaces/${slug}`;
 
 export const api = {
@@ -155,7 +204,9 @@ export const api = {
   workspaces: () => call<{ workspaces: WorkspaceSummary[] }>("GET", "/workspaces"),
   createWorkspace: (input: { name: string; slug: string }) =>
     call<{ workspace: WorkspaceSummary }>("POST", "/workspaces", input),
-  workspace: (slug: string) => call<{ workspace: { slug: string; name: string; role: Role } }>("GET", ws(slug)),
+  workspace: (slug: string) =>
+    call<{ workspace: { slug: string; name: string; role: Role; weekendDays: number[] } }>("GET", ws(slug)),
+  updateWorkspace: (slug: string, patch: { name?: string; weekendDays?: number[] }) => call("PATCH", ws(slug), patch),
   members: (slug: string) => call<{ members: Member[] }>("GET", `${ws(slug)}/members`),
   addMember: (slug: string, input: { email: string; role: Role }) => call("POST", `${ws(slug)}/members`, input),
   setRole: (slug: string, userId: string, role: Role) => call("PATCH", `${ws(slug)}/members/${userId}`, { role }),
@@ -216,6 +267,42 @@ export const api = {
 
   notifications: (slug: string) => call<{ notifications: Notification[] }>("GET", `${ws(slug)}/notifications`),
   markRead: (slug: string, ids?: string[]) => call("POST", `${ws(slug)}/notifications/read`, { ids }),
+
+  cycles: (slug: string, projectId: string) =>
+    call<{ cycles: Cycle[]; velocity: number | null }>("GET", `${ws(slug)}/projects/${projectId}/cycles`),
+  createCycle: (slug: string, projectId: string, input: { name?: string; startsOn: string; endsOn: string }) =>
+    call<{ cycle: Cycle }>("POST", `${ws(slug)}/projects/${projectId}/cycles`, input),
+  completeCycle: (slug: string, id: string) =>
+    call<{ rolledOver: number; movedTo: string | null }>("POST", `${ws(slug)}/cycles/${id}/complete`, {}),
+  deleteCycle: (slug: string, id: string) => call("DELETE", `${ws(slug)}/cycles/${id}`),
+  burndown: (slug: string, id: string) =>
+    call<{ unit: "points" | "issues"; points: { date: string; scope: number; remaining: number; ideal: number }[]; workingDays: number }>(
+      "GET",
+      `${ws(slug)}/cycles/${id}/burndown`,
+    ),
+  milestones: (slug: string, projectId: string) =>
+    call<{ milestones: Milestone[] }>("GET", `${ws(slug)}/projects/${projectId}/milestones`),
+  createMilestone: (slug: string, projectId: string, input: { name: string; targetDate?: string | null }) =>
+    call("POST", `${ws(slug)}/projects/${projectId}/milestones`, input),
+  deleteMilestone: (slug: string, id: string) => call("DELETE", `${ws(slug)}/milestones/${id}`),
+  timeline: (slug: string, projectId: string) => call<Timeline>("GET", `${ws(slug)}/projects/${projectId}/timeline`),
+  calendar: (slug: string, from: string, to: string, projectId?: string) =>
+    call<{ issues: Issue[]; milestones: { id: string; name: string; targetDate: string }[] }>(
+      "GET",
+      `${ws(slug)}/calendar?from=${from}&to=${to}${projectId ? `&projectId=${projectId}` : ""}`,
+    ),
+  initiatives: (slug: string) => call<{ initiatives: Initiative[] }>("GET", `${ws(slug)}/initiatives`),
+  createInitiative: (slug: string, input: { name: string; description?: string; targetDate?: string | null; projectIds: string[] }) =>
+    call("POST", `${ws(slug)}/initiatives`, input),
+  updateInitiative: (slug: string, id: string, patch: Record<string, unknown>) => call("PATCH", `${ws(slug)}/initiatives/${id}`, patch),
+  deleteInitiative: (slug: string, id: string) => call("DELETE", `${ws(slug)}/initiatives/${id}`),
+  updates: (slug: string, q: { initiativeId?: string; projectId?: string }) =>
+    call<{ updates: StatusUpdate[] }>(
+      "GET",
+      `${ws(slug)}/updates?${q.initiativeId ? `initiativeId=${q.initiativeId}` : `projectId=${q.projectId}`}`,
+    ),
+  postUpdate: (slug: string, input: { initiativeId?: string; projectId?: string; health: StatusUpdate["health"]; body: string }) =>
+    call("POST", `${ws(slug)}/updates`, input),
 
   views: (slug: string) => call<{ views: SavedView[] }>("GET", `${ws(slug)}/views`),
   createView: (slug: string, input: Omit<SavedView, "id" | "ownerId">) =>

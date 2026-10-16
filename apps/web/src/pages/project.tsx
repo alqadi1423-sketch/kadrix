@@ -5,6 +5,10 @@ import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { api } from "../api";
 import { FilterBar } from "../components/filter-bar";
+import { CalendarTab } from "../components/planning/calendar";
+import { CyclesTab } from "../components/planning/cycles";
+import { MilestonesTab } from "../components/planning/milestones";
+import { TimelineTab } from "../components/planning/timeline";
 import { IssueBoard } from "../components/issue-board";
 import { IssueList } from "../components/issue-list";
 import { keys, useIssues, useLabels, useMembers, useProject, useWorkspace } from "../lib/hooks";
@@ -12,6 +16,8 @@ import { useWorkspaceUi } from "../layout";
 import { Button, Empty } from "../ui";
 
 type Layout = "list" | "board";
+type Tab = "issues" | "cycles" | "milestones" | "timeline" | "calendar";
+const TABS: Tab[] = ["issues", "cycles", "milestones", "timeline", "calendar"];
 
 /** Remembers the last layout per project in this browser. */
 function useLayoutPref(projectId: string): [Layout, (l: Layout) => void] {
@@ -47,7 +53,11 @@ export function ProjectPage() {
   const members = useMembers(slug);
   const [layout, setLayout] = useLayoutPref(projectId);
   const [filter, setFilter] = useState<IssueFilter>({});
-  useEffect(() => setFilter({}), [projectId]);
+  const [tab, setTab] = useState<Tab>("issues");
+  useEffect(() => {
+    setFilter({});
+    setTab("issues");
+  }, [projectId]);
   const issues = useIssues(slug, { ...filter, projectId, ...(layout === "board" ? { includeClosed: true } : {}) });
   const role = ws.data?.workspace.role;
 
@@ -75,7 +85,7 @@ export function ProjectPage() {
           {p.name}
         </h1>
         <span className="flex-1" />
-        <div role="tablist" className="flex rounded-[var(--radius-control)] border border-line p-0.5 text-sm">
+        {tab === "issues" && <div role="tablist" className="flex rounded-[var(--radius-control)] border border-line p-0.5 text-sm">
           {(["list", "board"] as const).map((l) => (
             <button
               key={l}
@@ -87,9 +97,27 @@ export function ProjectPage() {
               {t(`issues.${l}`)}
             </button>
           ))}
-        </div>
+        </div>}
         {can(role, "issue.create") && <Button onClick={() => ui.newIssue({ projectId })}>{t("issues.newIssue")}</Button>}
       </div>
+      <nav role="tablist" aria-label={p.name} className="flex flex-wrap gap-1 border-b border-line">
+        {TABS.map((x) => (
+          <button
+            key={x}
+            role="tab"
+            aria-selected={tab === x}
+            onClick={() => setTab(x)}
+            className={`-mb-px border-b-2 px-3 py-2 text-sm ${tab === x ? "border-petrol font-medium text-ink" : "border-transparent text-muted"}`}
+          >
+            {t(`projectTabs.${x}`)}
+          </button>
+        ))}
+      </nav>
+      {tab === "cycles" && <CyclesTab slug={slug} projectId={projectId} canManage={can(role, "planning.manage")} />}
+      {tab === "milestones" && <MilestonesTab slug={slug} projectId={projectId} canManage={can(role, "planning.manage")} />}
+      {tab === "timeline" && <TimelineTab slug={slug} projectId={projectId} canEdit={can(role, "issue.update")} />}
+      {tab === "calendar" && <CalendarTab slug={slug} projectId={projectId} />}
+      {tab === "issues" && <>
       <div className="flex flex-wrap items-center gap-2">
         <FilterBar filter={filter} onChange={setFilter} members={members.data ?? []} labels={labels.data ?? []} />
         {can(role, "view.manage") && (
@@ -126,6 +154,7 @@ export function ProjectPage() {
       ) : (
         <Empty>{t("issues.empty")}</Empty>
       )}
+      </>}
     </div>
   );
 }

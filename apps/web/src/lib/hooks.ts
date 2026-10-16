@@ -47,7 +47,7 @@ export function useUpdateIssue(slug: string) {
       for (const [key, data] of snapshot) {
         // Only list-shaped caches; single-issue lookups share the prefix.
         if (!data || !Array.isArray(data.issues)) continue;
-        qc.setQueryData(key, { issues: data.issues.map((i) => (i.id === id ? { ...i, ...patch } : i)) });
+        qc.setQueryData(key, { ...data, issues: data.issues.map((i) => (i.id === id ? { ...i, ...patch } : i)) });
       }
       return { snapshot };
     },

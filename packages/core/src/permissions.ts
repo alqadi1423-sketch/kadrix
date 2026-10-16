@@ -26,6 +26,7 @@ export const ACTIONS = [
   "issue.delete",
   "comment.create",
   "view.manage",
+  "planning.manage",
   "integration.manage",
   "token.manage",
   "webhook.manage",
@@ -41,6 +42,7 @@ const MEMBER: readonly Action[] = [
   "issue.create",
   "issue.update",
   "view.manage",
+  "planning.manage",
   "token.manage",
 ];
 

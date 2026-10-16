@@ -21,6 +21,9 @@
   --color-petrol-strong: #0a5259;
   --color-signal: #f0a400;
   --color-danger: #b42318;
+  /* Chart series, validated for colour-blind separation (light surface). */
+  --color-chart-1: #008aa0;
+  --color-chart-2: #c06a00;
 
   --radius-control: 6px;
   --radius-panel: 10px;
@@ -36,6 +39,8 @@
     --color-petrol: #3fb1b9;
     --color-petrol-strong: #6cc9cf;
     --color-danger: #f97066;
+    --color-chart-1: #1aa5b5;
+    --color-chart-2: #d47c00;
   }
 }
 

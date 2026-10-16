@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { api, type SavedView } from "../api";
 import { IssueBoard } from "../components/issue-board";
+import { CalendarTab } from "../components/planning/calendar";
 import { IssueList } from "../components/issue-list";
 import { keys, useIssues, useLabels, useMe, useMembers, useProject } from "../lib/hooks";
 import { Button, Empty } from "../ui";
@@ -70,5 +71,17 @@ function ViewResults({ slug, view }: { slug: string; view: SavedView }) {
       members={members.data ?? []}
       canEdit
     />
+  );
+}
+
+/** Due dates across every project in the workspace. */
+export function WorkspaceCalendar() {
+  const { slug } = useParams({ strict: false }) as { slug: string };
+  const { t } = useTranslation();
+  return (
+    <div className="space-y-4">
+      <h1 className="text-2xl font-semibold">{t("calendar.title")}</h1>
+      <CalendarTab slug={slug} />
+    </div>
   );
 }

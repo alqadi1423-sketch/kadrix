@@ -130,6 +130,7 @@ function IssueDetail({ slug, id }: { slug: string; id: string }) {
             ))}
           </Select>
         </Prop>
+        <PlanningProps slug={slug} projectId={issue.projectId} cycleId={issue.cycleId} milestoneId={issue.milestoneId} editable={editable} onChange={set} />
         <Prop label={t("issues.labels")}>
           <LabelPicker
             all={labels.data ?? []}
@@ -644,5 +645,50 @@ function Conversation({
         </form>
       )}
     </section>
+  );
+}
+
+function PlanningProps({
+  slug,
+  projectId,
+  cycleId,
+  milestoneId,
+  editable,
+  onChange,
+}: {
+  slug: string;
+  projectId: string;
+  cycleId: string | null;
+  milestoneId: string | null;
+  editable: boolean;
+  onChange: (patch: Record<string, unknown>) => void;
+}) {
+  const { t } = useTranslation();
+  const cycles = useQuery({ queryKey: ["ws", slug, "cycle", projectId], queryFn: () => api.cycles(slug, projectId) });
+  const milestones = useQuery({ queryKey: ["ws", slug, "milestone", projectId], queryFn: () => api.milestones(slug, projectId) });
+  const openCycles = (cycles.data?.cycles ?? []).filter((c) => !c.completedAt || c.id === cycleId);
+  return (
+    <div className="grid grid-cols-2 gap-3">
+      <Prop label={t("cycles.cycle")}>
+        <Select disabled={!editable} value={cycleId ?? ""} onChange={(e) => onChange({ cycleId: e.target.value || null })} aria-label={t("cycles.cycle")} className="w-full">
+          <option value="">{t("cycles.none")}</option>
+          {openCycles.map((c) => (
+            <option key={c.id} value={c.id}>
+              {c.name || t("cycles.numbered", { number: c.number })}
+            </option>
+          ))}
+        </Select>
+      </Prop>
+      <Prop label={t("milestones.milestone")}>
+        <Select disabled={!editable} value={milestoneId ?? ""} onChange={(e) => onChange({ milestoneId: e.target.value || null })} aria-label={t("milestones.milestone")} className="w-full">
+          <option value="">{t("milestones.none")}</option>
+          {(milestones.data?.milestones ?? []).map((m) => (
+            <option key={m.id} value={m.id}>
+              {m.name}
+            </option>
+          ))}
+        </Select>
+      </Prop>
+    </div>
   );
 }

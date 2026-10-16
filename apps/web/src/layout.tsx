@@ -77,6 +77,12 @@ export function WorkspaceLayout() {
       <NavLink to="/w/$slug/views" slug={slug}>
         {t("nav.views")}
       </NavLink>
+      <NavLink to="/w/$slug/initiatives" slug={slug}>
+        {t("initiatives.title")}
+      </NavLink>
+      <NavLink to="/w/$slug/calendar" slug={slug}>
+        {t("calendar.title")}
+      </NavLink>
       <div className="mt-4 mb-1 flex items-center justify-between px-2 text-xs text-muted">
         <Link to="/w/$slug/projects" params={{ slug }} className="text-muted no-underline hover:text-ink">
           {t("nav.projects")}

@@ -101,6 +101,8 @@ export const workspace = pgTable("workspace", {
   id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
   slug: text("slug").notNull().unique(),
   name: text("name").notNull(),
+  /** Days of week (0 = Sunday) that are not working days. */
+  weekendDays: integer("weekend_days").array().notNull().default(sql`'{5,6}'`),
   createdAt: createdAt(),
   updatedAt: updatedAt(),
 });
@@ -437,4 +439,54 @@ export const savedView = pgTable(
     createdAt: createdAt(),
   },
   (t) => [index("view_ws_idx").on(t.workspaceId)],
+);
+
+/* ------------------------------------------------------------------ */
+/* Initiatives: a layer above projects with status updates            */
+/* ------------------------------------------------------------------ */
+
+export const healthEnum = pgEnum("health", ["onTrack", "atRisk", "offTrack"]);
+
+export const initiative = pgTable(
+  "initiative",
+  {
+    id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+    workspaceId: wsRef(),
+    name: text("name").notNull(),
+    description: text("description"),
+    targetDate: date("target_date"),
+    ownerId: text("owner_id").references(() => user.id, { onDelete: "set null" }),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+  },
+  (t) => [index("initiative_ws_idx").on(t.workspaceId)],
+);
+
+export const initiativeProject = pgTable(
+  "initiative_project",
+  {
+    initiativeId: uuid("initiative_id")
+      .notNull()
+      .references(() => initiative.id, { onDelete: "cascade" }),
+    projectId: uuid("project_id")
+      .notNull()
+      .references(() => project.id, { onDelete: "cascade" }),
+  },
+  (t) => [primaryKey({ columns: [t.initiativeId, t.projectId] })],
+);
+
+/** Health updates posted on an initiative or a project. */
+export const statusUpdate = pgTable(
+  "status_update",
+  {
+    id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+    workspaceId: wsRef(),
+    initiativeId: uuid("initiative_id").references(() => initiative.id, { onDelete: "cascade" }),
+    projectId: uuid("project_id").references(() => project.id, { onDelete: "cascade" }),
+    authorId: text("author_id").references(() => user.id, { onDelete: "set null" }),
+    health: healthEnum("health").notNull(),
+    body: text("body").notNull(),
+    createdAt: createdAt(),
+  },
+  (t) => [index("status_initiative_idx").on(t.initiativeId, t.createdAt), index("status_project_idx").on(t.projectId, t.createdAt)],
 );

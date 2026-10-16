@@ -3,6 +3,7 @@ import { secureHeaders } from "hono/secure-headers";
 import { type AppDeps, type Env, requireUser } from "./context.js";
 import { ApiError } from "./errors.js";
 import { issueRoutes } from "./routes/issues.js";
+import { planningRoutes } from "./routes/planning.js";
 import { projectRoutes } from "./routes/projects.js";
 import { workspaceRoutes } from "./routes/workspaces.js";
 
@@ -36,6 +37,7 @@ export function createApp(deps: AppDeps) {
   app.route("/", workspaceRoutes(deps));
   app.route("/", projectRoutes(deps));
   app.route("/", issueRoutes(deps));
+  app.route("/", planningRoutes(deps));
 
   return app;
 }

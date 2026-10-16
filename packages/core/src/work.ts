@@ -108,6 +108,9 @@ export const issueFilterSchema = z.object({
   parentId: z.string().uuid().optional(),
   search: z.string().max(200).optional(),
   includeClosed: z.boolean().optional(),
+  dueFrom: isoDate.optional(),
+  dueTo: isoDate.optional(),
+  updatedSince: z.string().datetime().optional(),
 });
 export type IssueFilter = z.infer<typeof issueFilterSchema>;
 
