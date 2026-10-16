@@ -166,7 +166,8 @@ export function TokensSettings({ slug }: { slug: string }) {
 /* -------------------------------- webhooks -------------------------------- */
 
 export function WebhooksSettings({ slug }: { slug: string }) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const i18nLang = () => (i18n.language === "ar" ? "ar" : "en");
   const qc = useQueryClient();
   const key = ["ws", slug, "webhooks"];
   const list = useQuery({ queryKey: key, queryFn: () => api.webhooks(slug) });
@@ -174,7 +175,7 @@ export function WebhooksSettings({ slug }: { slug: string }) {
   const [open, setOpen] = useState<string | null>(null);
   const refresh = () => qc.invalidateQueries({ queryKey: key });
   const create = useMutation({
-    mutationFn: (input: { url: string; events: string[] }) => api.createWebhook(slug, input),
+    mutationFn: (input: { url: string; events: string[]; format?: string; locale?: string }) => api.createWebhook(slug, input),
     onSuccess: (r) => {
       setFresh(r.webhook.secret);
       void refresh();
@@ -203,6 +204,7 @@ export function WebhooksSettings({ slug }: { slug: string }) {
                 <code dir="ltr" className="min-w-0 truncate">
                   {h.url}
                 </code>
+                {h.format !== "veloq" && <span className="rounded bg-paper px-1.5 text-xs">{h.format === "slack" ? "Slack" : "Discord"}</span>}
                 <span className={`rounded-full px-2 py-0.5 text-xs ${h.active ? "bg-[#2e8b57]/15" : "border border-line text-muted"}`}>
                   {h.active ? t("webhooks.active") : t("webhooks.paused")}
                 </span>
@@ -239,10 +241,30 @@ export function WebhooksSettings({ slug }: { slug: string }) {
             e.preventDefault();
             const form = e.currentTarget;
             const f = new FormData(form);
-            create.mutate({ url: String(f.get("url")), events: f.getAll("events").map(String) }, { onSuccess: () => form.reset() });
+            create.mutate(
+              { url: String(f.get("url")), events: f.getAll("events").map(String), format: String(f.get("format")), locale: String(f.get("locale")) },
+              { onSuccess: () => form.reset() },
+            );
           }}
         >
           <Field label={t("webhooks.url")} name="url" type="url" required dir="ltr" placeholder="https://" />
+          <div className="flex flex-wrap gap-3">
+            <label className="block">
+              <span className="mb-1 block text-sm text-muted">{t("webhooks.format")}</span>
+              <Select name="format" defaultValue="veloq" className="py-2">
+                <option value="veloq">JSON</option>
+                <option value="slack">Slack</option>
+                <option value="discord">Discord</option>
+              </Select>
+            </label>
+            <label className="block">
+              <span className="mb-1 block text-sm text-muted">{t("common.language")}</span>
+              <Select name="locale" defaultValue={i18nLang()} className="py-2">
+                <option value="ar">العربية</option>
+                <option value="en">English</option>
+              </Select>
+            </label>
+          </div>
           <fieldset>
             <legend className="mb-1 text-sm text-muted">{t("webhooks.events")}</legend>
             <div className="flex flex-wrap gap-2">

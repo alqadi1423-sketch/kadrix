@@ -77,6 +77,9 @@ export function WorkspaceLayout() {
       <NavLink to="/w/$slug/views" slug={slug}>
         {t("nav.views")}
       </NavLink>
+      <NavLink to="/w/$slug/docs" slug={slug}>
+        {t("docs.title")}
+      </NavLink>
       <NavLink to="/w/$slug/initiatives" slug={slug}>
         {t("initiatives.title")}
       </NavLink>

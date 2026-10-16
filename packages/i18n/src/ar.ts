@@ -338,6 +338,7 @@ export const ar: Messages = {
     title: "الخطافات البرمجية",
     create: "إضافة خطاف",
     url: "رابط الاستقبال",
+    format: "صيغة الرسالة",
     events: "الأحداث",
     secretOnce: "سر التوقيع. انسخه الآن فهو يظهر مرة واحدة فقط. تحقّق به من الترويسة X-Veloq-Signature.",
     active: "مفعّل",

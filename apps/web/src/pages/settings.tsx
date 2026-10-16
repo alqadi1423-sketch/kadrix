@@ -23,6 +23,7 @@ export function SettingsPage({ extraTabs = [] }: { extraTabs?: { id: string; lab
     { id: "workflow", label: t("projects.workflow"), show: can(role, "workflow.manage") },
     ...extraTabs.map((x) => ({ id: x.id, label: x.label, show: x.show(role) })),
     { id: "audit", label: t("audit.title"), show: can(role, "audit.read") },
+    { id: "preferences", label: t("preferences.title"), show: true },
   ];
   const visible = tabs.filter((x) => x.show);
   const [tab, setTab] = useState<Tab>("");
@@ -51,6 +52,7 @@ export function SettingsPage({ extraTabs = [] }: { extraTabs?: { id: string; lab
       {current === "labels" && <Labels slug={slug} canManage={can(role, "label.manage")} />}
       {current === "workflow" && <Workflow slug={slug} />}
       {current === "audit" && <Audit slug={slug} />}
+      {current === "preferences" && <Preferences />}
       {extra?.render(slug)}
     </div>
   );
@@ -103,6 +105,9 @@ function Members({ slug, myRole }: { slug: string; myRole: Role }) {
                 </Select>
               ) : (
                 <span className="text-sm text-muted">{t(`roles.${m.role}`)}</span>
+              )}
+              {m.role === "guest" && can(myRole, "member.updateRole") && (
+                <GuestProjects slug={slug} userId={m.userId} selected={m.projectIds ?? []} />
               )}
               {canManageRole(myRole, m.role, "guest") && (
                 <Button variant="danger" onClick={() => window.confirm(t("common.confirmDelete")) && remove.mutate(m.userId)}>
@@ -400,6 +405,63 @@ function General({ slug }: { slug: string }) {
           <ErrorText error={save.error} />
         </div>
       </form>
+    </Panel>
+  );
+}
+
+function GuestProjects({ slug, userId, selected }: { slug: string; userId: string; selected: string[] }) {
+  const { t } = useTranslation();
+  const qc = useQueryClient();
+  const projects = useProjects(slug);
+  const save = useMutation({
+    mutationFn: (ids: string[]) => api.setGuestProjects(slug, userId, ids),
+    onSuccess: () => qc.invalidateQueries({ queryKey: keys.members(slug) }),
+  });
+  const names = (projects.data ?? []).filter((p) => selected.includes(p.id)).map((p) => p.name);
+  return (
+    <details className="basis-full">
+      <summary className="cursor-pointer text-sm text-petrol">
+        {t("guests.projects")}: {names.length ? names.join("، ") : t("guests.none")}
+      </summary>
+      <div className="mt-2 flex flex-wrap gap-2">
+        {(projects.data ?? []).map((p) => (
+          <label key={p.id} className="flex items-center gap-1.5 rounded border border-line px-2 py-1 text-sm">
+            <input
+              type="checkbox"
+              className="accent-petrol"
+              checked={selected.includes(p.id)}
+              onChange={(e) => save.mutate(e.target.checked ? [...selected, p.id] : selected.filter((x) => x !== p.id))}
+            />
+            {p.name}
+          </label>
+        ))}
+      </div>
+      <ErrorText error={save.error} />
+    </details>
+  );
+}
+
+/** Personal settings, available to everyone. */
+export function Preferences() {
+  const { t } = useTranslation();
+  const qc = useQueryClient();
+  const prefs = useQuery({ queryKey: ["preferences"], queryFn: api.preferences });
+  const save = useMutation({
+    mutationFn: (patch: { emailDigest?: boolean }) => api.setPreferences(patch),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["preferences"] }),
+  });
+  if (!prefs.data) return null;
+  return (
+    <Panel title={t("preferences.title")}>
+      <label className="flex items-center gap-2 text-sm">
+        <input
+          type="checkbox"
+          className="accent-petrol"
+          checked={prefs.data.preferences.emailDigest}
+          onChange={(e) => save.mutate({ emailDigest: e.target.checked })}
+        />
+        {t("preferences.emailDigest")}
+      </label>
     </Panel>
   );
 }

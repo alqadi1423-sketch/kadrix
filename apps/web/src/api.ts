@@ -41,6 +41,8 @@ export interface Member {
   name: string;
   email: string;
   role: Role;
+  /** Guests only: the projects they can see. */
+  projectIds?: string[] | null;
 }
 export interface AuditEntry {
   id: string;
@@ -220,6 +222,8 @@ export interface Webhook {
   id: string;
   url: string;
   events: string[];
+  format: string;
+  locale: string;
   active: boolean;
   failing: number;
 }
@@ -256,6 +260,16 @@ export interface Release {
   releasedAt: string | null;
   createdAt: string;
   issueCount: number;
+}
+
+export interface PageSummary {
+  id: string;
+  title: string;
+  projectId: string | null;
+  parentId: string | null;
+  position: number;
+  updatedAt: string;
+  updatedByName: string | null;
 }
 
 const ws = (slug: string) => `/workspaces/${slug}`;
@@ -371,7 +385,7 @@ export const api = {
     call<{ token: ApiToken & { value: string } }>("POST", `${ws(slug)}/tokens`, input),
   revokeToken: (slug: string, id: string) => call("DELETE", `${ws(slug)}/tokens/${id}`),
   webhooks: (slug: string) => call<{ webhooks: Webhook[] }>("GET", `${ws(slug)}/webhooks`),
-  createWebhook: (slug: string, input: { url: string; events: string[] }) =>
+  createWebhook: (slug: string, input: { url: string; events: string[]; format?: string; locale?: string }) =>
     call<{ webhook: Webhook & { secret: string } }>("POST", `${ws(slug)}/webhooks`, input),
   updateWebhook: (slug: string, id: string, patch: Partial<{ url: string; events: string[]; active: boolean }>) =>
     call("PATCH", `${ws(slug)}/webhooks/${id}`, patch),
@@ -390,6 +404,22 @@ export const api = {
     call<{ release: Release }>("POST", `${ws(slug)}/projects/${projectId}/releases`, input),
   publishRelease: (slug: string, id: string) => call("POST", `${ws(slug)}/releases/${id}/publish`),
   deleteRelease: (slug: string, id: string) => call("DELETE", `${ws(slug)}/releases/${id}`),
+
+  pages: (slug: string, q?: string) =>
+    call<{ pages: PageSummary[] }>("GET", `${ws(slug)}/pages${q ? `?q=${encodeURIComponent(q)}` : ""}`),
+  page: (slug: string, id: string) =>
+    call<{ page: PageSummary & { contentText: string }; issues: { id: string; key: string; title: string }[] }>("GET", `${ws(slug)}/pages/${id}`),
+  createPage: (slug: string, input: { title: string; projectId?: string | null; parentId?: string | null }) =>
+    call<{ page: PageSummary }>("POST", `${ws(slug)}/pages`, input),
+  updatePage: (slug: string, id: string, patch: { title?: string; parentId?: string | null; position?: number }) =>
+    call("PATCH", `${ws(slug)}/pages/${id}`, patch),
+  deletePage: (slug: string, id: string) => call("DELETE", `${ws(slug)}/pages/${id}`),
+  issuePages: (slug: string, issueId: string) =>
+    call<{ pages: { id: string; title: string; updatedAt: string }[] }>("GET", `${ws(slug)}/issues/${issueId}/pages`),
+  setGuestProjects: (slug: string, userId: string, projectIds: string[]) =>
+    call("PUT", `${ws(slug)}/members/${userId}/projects`, { projectIds }),
+  preferences: () => call<{ preferences: { locale: "ar" | "en"; emailDigest: boolean } }>("GET", "/me/preferences"),
+  setPreferences: (patch: { locale?: "ar" | "en"; emailDigest?: boolean }) => call("PATCH", "/me/preferences", patch),
 
   views: (slug: string) => call<{ views: SavedView[] }>("GET", `${ws(slug)}/views`),
   createView: (slug: string, input: Omit<SavedView, "id" | "ownerId">) =>

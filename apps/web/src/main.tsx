@@ -8,6 +8,7 @@ import { useTranslation } from "react-i18next";
 import { authClient } from "./api";
 import { WorkspaceLayout } from "./layout";
 import { AuthPage } from "./pages/auth";
+import { DocsPage } from "./pages/docs";
 import { InboxPage } from "./pages/inbox";
 import { InitiativesPage } from "./pages/initiatives";
 import { IssuePage } from "./pages/issue";
@@ -62,12 +63,14 @@ const projectRoute = createRoute({ getParentRoute: () => wsRoute, path: "/p/$pro
 const issueRoute = createRoute({ getParentRoute: () => wsRoute, path: "/i/$key", component: IssuePage });
 const initiativesRoute = createRoute({ getParentRoute: () => wsRoute, path: "/initiatives", component: InitiativesPage });
 const calendarRoute = createRoute({ getParentRoute: () => wsRoute, path: "/calendar", component: WorkspaceCalendar });
+const docsRoute = createRoute({ getParentRoute: () => wsRoute, path: "/docs", component: DocsPage });
+const docRoute = createRoute({ getParentRoute: () => wsRoute, path: "/docs/$pageId", component: DocsPage });
 const viewsRoute = createRoute({ getParentRoute: () => wsRoute, path: "/views", component: ViewsPage });
 const settingsRoute = createRoute({ getParentRoute: () => wsRoute, path: "/settings", component: Settings });
 
 const routeTree = rootRoute.addChildren([
   indexRoute,
-  wsRoute.addChildren([myIssuesRoute, inboxRoute, projectsRoute, projectRoute, issueRoute, viewsRoute, settingsRoute, initiativesRoute, calendarRoute]),
+  wsRoute.addChildren([myIssuesRoute, inboxRoute, projectsRoute, projectRoute, issueRoute, viewsRoute, settingsRoute, initiativesRoute, calendarRoute, docsRoute, docRoute]),
 ]);
 
 const router = createRouter({ routeTree });

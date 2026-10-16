@@ -338,6 +338,7 @@ export const en = {
     title: "Webhooks",
     create: "Add webhook",
     url: "Payload URL",
+    format: "Message format",
     events: "Events",
     secretOnce: "Signing secret. Copy it now; it is shown only once. Verify the X-Veloq-Signature header with it.",
     active: "Active",

@@ -78,6 +78,7 @@ function IssueDetail({ slug, id }: { slug: string; id: string }) {
         <SubIssues slug={slug} issue={issue} children={detail.data.children} labels={labels.data ?? []} onAdd={() => ui.newIssue({ projectId: issue.projectId, parentId: issue.id })} editable={editable} />
         <Relations slug={slug} issue={issue} relations={detail.data.relations} related={detail.data.related} editable={editable} />
         <DevSection slug={slug} issueId={id} issueKey={issue.key} />
+        <MentionedInDocs slug={slug} issueId={id} />
         <Attachments slug={slug} id={id} editable={editable} />
         <Conversation slug={slug} id={id} members={m} canComment={can(role, "comment.create")} canModerate={can(role, "issue.delete")} />
       </div>
@@ -696,5 +697,25 @@ function PlanningProps({
         </Select>
       </Prop>
     </div>
+  );
+}
+
+function MentionedInDocs({ slug, issueId }: { slug: string; issueId: string }) {
+  const { t } = useTranslation();
+  const pages = useQuery({ queryKey: ["ws", slug, "page", "issue", issueId], queryFn: () => api.issuePages(slug, issueId) });
+  if (!pages.data?.pages.length) return null;
+  return (
+    <section>
+      <h2 className="mb-2 text-sm font-semibold">{t("docs.mentionedIn")}</h2>
+      <ul className="space-y-1 text-sm">
+        {pages.data.pages.map((p) => (
+          <li key={p.id}>
+            <Link to="/w/$slug/docs/$pageId" params={{ slug, pageId: p.id }} dir="auto">
+              {p.title}
+            </Link>
+          </li>
+        ))}
+      </ul>
+    </section>
   );
 }

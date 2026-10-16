@@ -40,6 +40,13 @@ export function setLocale(next: Locale) {
     // ignore
   }
   void i18n.changeLanguage(next);
+  // Emails follow the language people use in the app.
+  void fetch("/api/me/preferences", {
+    method: "PATCH",
+    credentials: "include",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ locale: next }),
+  }).catch(() => {});
 }
 
 export { i18n };
