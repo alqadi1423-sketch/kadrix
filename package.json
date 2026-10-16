@@ -1,0 +1,29 @@
+{
+  "name": "veloq",
+  "private": true,
+  "description": "Open-source project management for tech teams. Arabic and English, self-hostable.",
+  "license": "AGPL-3.0-or-later",
+  "packageManager": "pnpm@10.28.0",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "dev": "turbo run dev",
+    "build": "turbo run build",
+    "typecheck": "turbo run typecheck",
+    "test": "turbo run test",
+    "lint": "node scripts/check-rtl.mjs",
+    "check": "pnpm lint && pnpm typecheck && pnpm test",
+    "db:generate": "pnpm --filter @veloq/db generate",
+    "db:migrate": "pnpm --filter @veloq/db migrate"
+  },
+  "devDependencies": {
+    "turbo": "2.11.8",
+    "typescript": "6.0.3"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "esbuild"
+    ]
+  }
+}

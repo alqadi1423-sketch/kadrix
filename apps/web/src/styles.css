@@ -1,0 +1,82 @@
+@import "tailwindcss";
+@import "@fontsource-variable/readex-pro";
+
+/*
+ * Veloq tokens. One family (Readex Pro) carries both Arabic and Latin so the
+ * two languages share one voice. Cool petrol ink on a cool paper, with a single
+ * amber "signal" reserved for the velocity mark and focus.
+ *
+ * Direction rule: only logical utilities (ms, me, ps, pe, start, end,
+ * text-start, border-s...). `pnpm lint` rejects physical left/right classes.
+ */
+@theme {
+  --font-sans: "Readex Pro Variable", system-ui, sans-serif;
+
+  --color-paper: #f4f7f7;
+  --color-surface: #ffffff;
+  --color-ink: #0c2a30;
+  --color-muted: #5b7176;
+  --color-line: #d5dfe1;
+  --color-petrol: #0f6b73;
+  --color-petrol-strong: #0a5259;
+  --color-signal: #f0a400;
+  --color-danger: #b42318;
+
+  --radius-control: 6px;
+  --radius-panel: 10px;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --color-paper: #0b1b1e;
+    --color-surface: #11262a;
+    --color-ink: #e4eef0;
+    --color-muted: #8ea6ab;
+    --color-line: #22403f;
+    --color-petrol: #3fb1b9;
+    --color-petrol-strong: #6cc9cf;
+    --color-danger: #f97066;
+  }
+}
+
+html {
+  background: var(--color-paper);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+  font-feature-settings: "kern";
+  -webkit-font-smoothing: antialiased;
+}
+
+body {
+  margin: 0;
+  min-height: 100dvh;
+  line-height: 1.6;
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-signal);
+  outline-offset: 2px;
+}
+
+/*
+ * The velocity mark: a slanted bar that leans in the reading direction.
+ * In Arabic it leans the other way, so motion always reads "forward".
+ */
+.velocity-mark {
+  display: inline-block;
+  inline-size: 0.55em;
+  block-size: 1.05em;
+  background: var(--color-signal);
+  transform: skewX(-18deg);
+  border-radius: 2px;
+}
+[dir="rtl"] .velocity-mark {
+  transform: skewX(18deg);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    transition: none !important;
+    animation: none !important;
+  }
+}

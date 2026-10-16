@@ -1,0 +1,34 @@
+# Run Veloq on your own server:
+#   cp .env.example .env   (then set AUTH_SECRET)
+#   docker compose up -d
+services:
+  veloq:
+    build: .
+    restart: unless-stopped
+    ports:
+      - "${PORT:-3000}:3000"
+    environment:
+      DATABASE_URL: postgres://veloq:${POSTGRES_PASSWORD:-veloq}@db:5432/veloq
+      AUTH_SECRET: ${AUTH_SECRET:?Set AUTH_SECRET in .env (at least 32 characters)}
+      BASE_URL: ${BASE_URL:-http://localhost:3000}
+      VELOQ_EDITION: self-hosted
+    depends_on:
+      db:
+        condition: service_healthy
+
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: veloq
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-veloq}
+      POSTGRES_DB: veloq
+    volumes:
+      - veloq-db:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U veloq"]
+      interval: 5s
+      retries: 10
+
+volumes:
+  veloq-db:
