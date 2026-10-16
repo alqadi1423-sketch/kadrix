@@ -1,4 +1,4 @@
-import { ISSUE_TYPES, RELATION_TYPES, ROLES, STATE_CATEGORIES, VIEW_LAYOUTS } from "@veloq/core";
+import { AUTOMATION_TRIGGERS, FIELD_KINDS, IMPORT_SOURCES, ISSUE_TYPES, RECURRENCE_FREQ, RELATION_TYPES, ROLES, STATE_CATEGORIES, VIEW_LAYOUTS } from "@veloq/core";
 import { sql, type SQL } from "drizzle-orm";
 import {
   boolean,
@@ -271,7 +271,7 @@ export const issue = pgTable(
     /** 'simple' config: language-neutral, works for Arabic and English text. */
     searchVector: tsvector("search_vector").generatedAlwaysAs(
       (): SQL =>
-        sql`setweight(to_tsvector('simple', coalesce(${issue.title}, '')), 'A') || setweight(to_tsvector('simple', coalesce(${issue.description}, '')), 'B')`,
+        sql`setweight(to_tsvector('simple', veloq_search_text(coalesce(${issue.title}, ''))), 'A') || setweight(to_tsvector('simple', veloq_search_text(coalesce(${issue.description}, ''))), 'B')`,
     ),
     createdAt: createdAt(),
     updatedAt: updatedAt(),
@@ -283,7 +283,7 @@ export const issue = pgTable(
     index("issue_parent_idx").on(t.parentId),
     index("issue_cycle_idx").on(t.cycleId),
     index("issue_search_idx").using("gin", t.searchVector),
-    index("issue_title_trgm_idx").using("gin", sql`${t.title} gin_trgm_ops`),
+    index("issue_title_trgm_idx").using("gin", sql`veloq_search_text(${t.title}) gin_trgm_ops`),
   ],
 );
 
@@ -372,6 +372,8 @@ export const comment = pgTable(
       .notNull()
       .references(() => issue.id, { onDelete: "cascade" }),
     authorId: text("author_id").references(() => user.id, { onDelete: "set null" }),
+    /** Set when no person wrote it (e.g. "automation"). */
+    source: text("source"),
     body: text("body").notNull(),
     editedAt: timestamp("edited_at", { withTimezone: true }),
     createdAt: createdAt(),
@@ -655,7 +657,7 @@ export const page = pgTable(
     updatedAt: updatedAt(),
     searchVector: tsvector("search_vector").generatedAlwaysAs(
       (): SQL =>
-        sql`setweight(to_tsvector('simple', coalesce(${page.title}, '')), 'A') || setweight(to_tsvector('simple', coalesce(${page.contentText}, '')), 'B')`,
+        sql`setweight(to_tsvector('simple', veloq_search_text(coalesce(${page.title}, ''))), 'A') || setweight(to_tsvector('simple', veloq_search_text(coalesce(${page.contentText}, ''))), 'B')`,
     ),
   },
   (t) => [index("page_ws_idx").on(t.workspaceId, t.projectId), index("page_search_idx").using("gin", t.searchVector)],
@@ -697,3 +699,153 @@ export const userPreference = pgTable("user_preference", {
   emailDigest: boolean("email_digest").notNull().default(true),
   lastDigestAt: timestamp("last_digest_at", { withTimezone: true }),
 });
+
+/* ------------------------------------------------------------------ */
+/* Phase 5: fields, templates, recurrence, automation, time, import   */
+/* ------------------------------------------------------------------ */
+
+export const fieldKindEnum = pgEnum("field_kind", FIELD_KINDS);
+
+export const customField = pgTable(
+  "custom_field",
+  {
+    id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+    workspaceId: wsRef(),
+    /** Null: the field applies to every project. */
+    projectId: uuid("project_id").references(() => project.id, { onDelete: "cascade" }),
+    name: text("name").notNull(),
+    kind: fieldKindEnum("kind").notNull(),
+    options: jsonb("options").$type<{ id: string; name: string; color?: string }[]>().notNull().default([]),
+    position: doublePrecision("position").notNull().default(0),
+    createdAt: createdAt(),
+  },
+  (t) => [index("custom_field_ws_idx").on(t.workspaceId, t.projectId)],
+);
+
+export const issueFieldValue = pgTable(
+  "issue_field_value",
+  {
+    workspaceId: wsRef(),
+    issueId: uuid("issue_id")
+      .notNull()
+      .references(() => issue.id, { onDelete: "cascade" }),
+    fieldId: uuid("field_id")
+      .notNull()
+      .references(() => customField.id, { onDelete: "cascade" }),
+    value: jsonb("value").notNull(),
+  },
+  (t) => [primaryKey({ columns: [t.issueId, t.fieldId] }), index("field_value_field_idx").on(t.fieldId)],
+);
+
+export const issueTemplate = pgTable(
+  "issue_template",
+  {
+    id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+    workspaceId: wsRef(),
+    projectId: uuid("project_id")
+      .notNull()
+      .references(() => project.id, { onDelete: "cascade" }),
+    name: text("name").notNull(),
+    title: text("title").notNull().default(""),
+    description: text("description").notNull().default(""),
+    defaults: jsonb("defaults")
+      .$type<{ type?: string; priority?: number; estimate?: number | null; assigneeId?: string | null; labelIds?: string[]; fields?: Record<string, unknown> }>()
+      .notNull()
+      .default({}),
+    createdBy: text("created_by").references(() => user.id, { onDelete: "set null" }),
+    createdAt: createdAt(),
+  },
+  (t) => [index("issue_template_project_idx").on(t.projectId)],
+);
+
+export const recurrenceFreqEnum = pgEnum("recurrence_freq", RECURRENCE_FREQ);
+
+export const recurrence = pgTable(
+  "recurrence",
+  {
+    id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+    workspaceId: wsRef(),
+    templateId: uuid("template_id")
+      .notNull()
+      .references(() => issueTemplate.id, { onDelete: "cascade" }),
+    freq: recurrenceFreqEnum("freq").notNull(),
+    interval: smallint("interval").notNull().default(1),
+    weekdays: smallint("weekdays").array().notNull().default(sql`'{}'`),
+    dayOfMonth: smallint("day_of_month"),
+    startDate: date("start_date", { mode: "string" }).notNull(),
+    /** The next date an issue is due to be created. */
+    nextDate: date("next_date", { mode: "string" }).notNull(),
+    lastDate: date("last_date", { mode: "string" }),
+    active: boolean("active").notNull().default(true),
+    createdBy: text("created_by").references(() => user.id, { onDelete: "set null" }),
+    createdAt: createdAt(),
+  },
+  (t) => [index("recurrence_due_idx").on(t.active, t.nextDate)],
+);
+
+export const automationTriggerEnum = pgEnum("automation_trigger", AUTOMATION_TRIGGERS);
+
+export const automationRule = pgTable(
+  "automation_rule",
+  {
+    id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+    workspaceId: wsRef(),
+    projectId: uuid("project_id").references(() => project.id, { onDelete: "cascade" }),
+    name: text("name").notNull(),
+    trigger: automationTriggerEnum("trigger").notNull(),
+    conditions: jsonb("conditions").$type<unknown[]>().notNull().default([]),
+    actions: jsonb("actions").$type<unknown[]>().notNull().default([]),
+    active: boolean("active").notNull().default(true),
+    runCount: integer("run_count").notNull().default(0),
+    lastRunAt: timestamp("last_run_at", { withTimezone: true }),
+    lastError: text("last_error"),
+    createdBy: text("created_by").references(() => user.id, { onDelete: "set null" }),
+    createdAt: createdAt(),
+  },
+  (t) => [index("automation_rule_ws_idx").on(t.workspaceId, t.trigger)],
+);
+
+export const timeEntry = pgTable(
+  "time_entry",
+  {
+    id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+    workspaceId: wsRef(),
+    issueId: uuid("issue_id")
+      .notNull()
+      .references(() => issue.id, { onDelete: "cascade" }),
+    userId: text("user_id").references(() => user.id, { onDelete: "set null" }),
+    minutes: integer("minutes").notNull(),
+    date: date("date", { mode: "string" }).notNull(),
+    note: text("note").notNull().default(""),
+    createdAt: createdAt(),
+  },
+  (t) => [index("time_entry_issue_idx").on(t.issueId), index("time_entry_ws_date_idx").on(t.workspaceId, t.date)],
+);
+
+export const importSourceEnum = pgEnum("import_source", IMPORT_SOURCES);
+
+export const importJob = pgTable("import_job", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  workspaceId: wsRef(),
+  projectId: uuid("project_id")
+    .notNull()
+    .references(() => project.id, { onDelete: "cascade" }),
+  source: importSourceEnum("source").notNull(),
+  stats: jsonb("stats").$type<{ created: number; updated: number; skipped: number; labels: number }>().notNull(),
+  createdBy: text("created_by").references(() => user.id, { onDelete: "set null" }),
+  createdAt: createdAt(),
+});
+
+/** Where an imported issue came from, so importing again updates instead of duplicating. */
+export const importRef = pgTable(
+  "import_ref",
+  {
+    workspaceId: wsRef(),
+    source: importSourceEnum("source").notNull(),
+    externalId: text("external_id").notNull(),
+    issueId: uuid("issue_id")
+      .notNull()
+      .references(() => issue.id, { onDelete: "cascade" }),
+  },
+  (t) => [primaryKey({ columns: [t.workspaceId, t.source, t.externalId] }), index("import_ref_issue_idx").on(t.issueId)],
+);

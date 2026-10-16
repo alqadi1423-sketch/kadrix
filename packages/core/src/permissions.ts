@@ -30,6 +30,12 @@ export const ACTIONS = [
   "integration.manage",
   "token.manage",
   "webhook.manage",
+  "field.manage",
+  "template.manage",
+  "automation.manage",
+  "import.run",
+  "time.log",
+  "report.read",
 ] as const;
 export type Action = (typeof ACTIONS)[number];
 
@@ -44,6 +50,9 @@ const MEMBER: readonly Action[] = [
   "view.manage",
   "planning.manage",
   "token.manage",
+  "template.manage",
+  "time.log",
+  "report.read",
 ];
 
 const ADMIN: readonly Action[] = [
@@ -60,6 +69,9 @@ const ADMIN: readonly Action[] = [
   "issue.delete",
   "integration.manage",
   "webhook.manage",
+  "field.manage",
+  "automation.manage",
+  "import.run",
 ];
 
 const MATRIX: Record<Role, readonly Action[]> = {

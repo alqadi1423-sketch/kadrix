@@ -1,4 +1,4 @@
-import { findIssueKeys } from "@veloq/core";
+import { buildTsQuery, findIssueKeys, foldSearchText } from "@veloq/core";
 import { issue, page, pageIssue, project, user, type Database } from "@veloq/db";
 import { and, asc, desc, eq, inArray, isNull, sql } from "drizzle-orm";
 import { Hono } from "hono";
@@ -24,6 +24,12 @@ function pageScope(m: Membership) {
     eq(page.workspaceId, m.workspaceId),
     m.projectIds.length ? inArray(page.projectId, m.projectIds) : sql`false`,
   )!;
+}
+
+function pageSearch(q: string) {
+  const tsq = buildTsQuery(q);
+  const like = sql`veloq_search_text(${page.title}) ilike ${`%${foldSearchText(q).replace(/[%_\\]/g, "\\$&")}%`}`;
+  return tsq ? sql`(${page.searchVector} @@ to_tsquery('simple', ${tsq}) or ${like})` : like;
 }
 
 export async function loadPage(db: Database, m: Membership, id: string) {
@@ -83,7 +89,7 @@ export function pageRoutes(deps: AppDeps) {
         and(
           pageScope(m),
           projectId === "none" ? isNull(page.projectId) : projectId ? eq(page.projectId, projectId) : undefined,
-          q ? sql`(${page.searchVector} @@ plainto_tsquery('simple', ${q}) or ${page.title} ilike ${`%${q.replace(/[%_\\]/g, "\\$&")}%`})` : undefined,
+          q ? pageSearch(q) : undefined,
         ),
       )
       .orderBy(asc(page.position), asc(page.title))

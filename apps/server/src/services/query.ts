@@ -1,4 +1,4 @@
-import { CLOSED_CATEGORIES, issueKey, type IssueFilter } from "@veloq/core";
+import { CLOSED_CATEGORIES, buildTsQuery, foldSearchText, issueKey, type IssueFilter } from "@veloq/core";
 import { issue, issueLabel, project, user, workflowState, type Database } from "@veloq/db";
 import { and, asc, desc, eq, gte, inArray, lte, notInArray, or, sql, type SQL } from "drizzle-orm";
 
@@ -73,12 +73,13 @@ export function issueFilterWhere(scope: Scope, f: IssueFilter): SQL {
   if (f.search?.trim()) {
     const q = f.search.trim();
     const m = /^([A-Za-z][A-Za-z0-9]{1,5})-(\d+)$/.exec(q);
+    const tsq = buildTsQuery(q);
     conds.push(
       or(
-        // Full-text (works for Arabic and English with the 'simple' config) ...
-        sql`${issue.searchVector} @@ plainto_tsquery('simple', ${q})`,
-        // ... plus substring/fuzzy match on titles for partial words.
-        sql`${issue.title} ilike ${"%" + q.replace(/[%_\\]/g, "\\$&") + "%"}`,
+        // Full-text on folded words, prefix-matched, Arabic article aware ...
+        tsq ? sql`${issue.searchVector} @@ to_tsquery('simple', ${tsq})` : undefined,
+        // ... plus a substring match on titles for partial words.
+        sql`veloq_search_text(${issue.title}) ilike ${"%" + foldSearchText(q).replace(/[%_\\]/g, "\\$&") + "%"}`,
         m ? and(eq(project.key, m[1]!.toUpperCase()), eq(issue.number, Number(m[2]))) : undefined,
       ),
     );

@@ -80,6 +80,8 @@ export const createIssueSchema = z.object({
   cycleId: z.string().uuid().nullable().optional(),
   milestoneId: z.string().uuid().nullable().optional(),
   startDate: isoDate.nullable().optional(),
+  /** Custom field values by field id; null clears one. */
+  fields: z.record(z.string().uuid(), z.unknown()).optional(),
 });
 
 export const updateIssueSchema = createIssueSchema

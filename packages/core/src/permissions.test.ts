@@ -13,6 +13,9 @@ const MEMBER: Action[] = [
   "view.manage",
   "planning.manage",
   "token.manage",
+  "template.manage",
+  "time.log",
+  "report.read",
 ];
 const ADMIN: Action[] = [
   ...MEMBER,
@@ -28,6 +31,9 @@ const ADMIN: Action[] = [
   "issue.delete",
   "integration.manage",
   "webhook.manage",
+  "field.manage",
+  "automation.manage",
+  "import.run",
 ];
 const EXPECTED: Record<Role, Action[]> = {
   owner: [...ACTIONS],

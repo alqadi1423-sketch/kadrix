@@ -10,6 +10,7 @@ import { ApiError, forbidden, unauthorized } from "./errors.js";
 import { openApiDocument } from "./openapi.js";
 import { clientIp, rateLimit } from "./ratelimit.js";
 import { devlinkRoutes } from "./routes/devlink.js";
+import { extendRoutes } from "./routes/extend.js";
 import { issueRoutes } from "./routes/issues.js";
 import { pageRoutes } from "./routes/pages.js";
 import { planningRoutes } from "./routes/planning.js";
@@ -108,6 +109,7 @@ export function createApp(deps: AppDeps) {
   app.route("/", planningRoutes(deps));
   app.route("/", devlinkRoutes(deps));
   app.route("/", pageRoutes(deps));
+  app.route("/", extendRoutes(deps));
 
   return app;
 }

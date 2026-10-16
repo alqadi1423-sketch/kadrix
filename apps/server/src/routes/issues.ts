@@ -164,6 +164,7 @@ export function issueRoutes(deps: AppDeps) {
         body: comment.body,
         authorId: comment.authorId,
         authorName: user.name,
+        source: comment.source,
         createdAt: comment.createdAt,
         editedAt: comment.editedAt,
       })

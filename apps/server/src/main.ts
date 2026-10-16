@@ -13,6 +13,7 @@ import { createAuth } from "./auth.js";
 import { loadConfig } from "./config.js";
 import { createPgEventBus } from "./events.js";
 import { mountCollab } from "./collab.js";
+import { startRecurrenceWorker } from "./services/recurrence.js";
 import { mountRealtime } from "./realtime.js";
 import { createDiskStorage } from "./storage.js";
 
@@ -30,6 +31,7 @@ startDeliveryWorker(db, { sealer, allowPrivate: config.allowPrivateWebhooks, bas
 
 const mailer = await createMailer(config.smtpUrl, config.mailFrom);
 if (mailer) startDigestWorker(db, mailer, config.baseUrl);
+startRecurrenceWorker(db, events);
 
 const root = new Hono();
 const { injectWebSocket, upgradeWebSocket } = createNodeWebSocket({ app: root });

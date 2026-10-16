@@ -14,7 +14,12 @@ export type AuditAction =
   | "webhook.created"
   | "webhook.deleted"
   | "integration.connected"
-  | "integration.disconnected";
+  | "integration.disconnected"
+  | "field.created"
+  | "field.deleted"
+  | "automation.created"
+  | "automation.deleted"
+  | "import.completed";
 
 type Tx = Parameters<Parameters<Database["transaction"]>[0]>[0];
 

@@ -1,4 +1,4 @@
-import { CLOSED_CATEGORIES, type StateCategory, createIssueSchema, updateIssueSchema } from "@veloq/core";
+import { CLOSED_CATEGORIES, type AutomationTrigger, type StateCategory, createIssueSchema, updateIssueSchema } from "@veloq/core";
 import {
   comment,
   cycle,
@@ -20,6 +20,8 @@ import type { z } from "zod";
 import type { Db, Tx } from "../context.js";
 import { ApiError, invalid, notFound } from "../errors.js";
 import type { ChangeEvent, EventBus } from "../events.js";
+import { runAutomations } from "./automation.js";
+import { setFieldValues } from "./fields.js";
 import { enqueueWebhooks } from "./webhooks.js";
 
 type CreateInput = z.infer<typeof createIssueSchema>;
@@ -32,11 +34,20 @@ export interface IssueContext {
   actorId: string | null;
   /** Integration that made the change, when no person did (e.g. "github"). */
   source?: string | null;
+  /** How many automation rules led to this change; bounds rule chains. */
+  depth?: number;
+}
+
+export interface AutomationTriggerEvent {
+  trigger: AutomationTrigger;
+  issueId: string;
 }
 
 /** Collects events and publishes them only after the transaction commits. */
 class Outbox {
   private items: ChangeEvent[] = [];
+  /** Automation triggers, run once the change is committed. */
+  triggers: AutomationTriggerEvent[] = [];
   add(e: ChangeEvent) {
     this.items.push(e);
   }
@@ -243,6 +254,9 @@ export async function createIssue(ctx: IssueContext, input: CreateInput) {
     if (input.labelIds?.length) {
       await tx.insert(issueLabel).values([...new Set(input.labelIds)].map((labelId) => ({ issueId: row.id, labelId })));
     }
+    if (input.fields && Object.keys(input.fields).length) {
+      await setFieldValues(tx, ctx, { id: row.id, projectId: proj.id }, input.fields);
+    }
     await tx.insert(issueTransition).values({
       workspaceId: ctx.workspaceId,
       issueId: row.id,
@@ -269,9 +283,11 @@ export async function createIssue(ctx: IssueContext, input: CreateInput) {
     await notifyMentions(tx, outbox, ctx, row.id, mentioned);
     await enqueueWebhooks(tx, ctx.workspaceId, "issue.created", { issue: await issuePayload(tx, row.id), actorId: ctx.actorId });
     outbox.add({ workspaceId: ctx.workspaceId, entity: "issue", id: row.id });
+    outbox.triggers.push({ trigger: "issueCreated", issueId: row.id });
     return row;
   });
   await outbox.flush(ctx.events);
+  await runAutomations(ctx, outbox.triggers);
   return created;
 }
 
@@ -311,6 +327,7 @@ export async function updateIssue(ctx: IssueContext, issueId: string, input: Upd
   const outbox = new Outbox();
   const updated = await ctx.db.transaction((tx) => updateIssueIn(tx, outbox, ctx, issueId, input));
   await outbox.flush(ctx.events);
+  await runAutomations(ctx, outbox.triggers);
   return updated;
 }
 
@@ -323,6 +340,7 @@ export async function updateIssues(ctx: IssueContext, issueIds: string[], input:
     for (const id of ids) await updateIssueIn(tx, outbox, ctx, id, input);
   });
   await outbox.flush(ctx.events);
+  await runAutomations(ctx, outbox.triggers);
 }
 
 async function updateIssueIn(tx: Tx, outbox: Outbox, ctx: IssueContext, issueId: string, input: UpdateInput) {
@@ -404,11 +422,17 @@ async function updateIssueIn(tx: Tx, outbox: Outbox, ctx: IssueContext, issueId:
           workspaceId: ctx.workspaceId,
           issueId,
           actorId: ctx.actorId,
+          source: ctx.source ?? null,
           field: "labels",
           fromValue: [...prev],
           toValue: [...next],
         });
+        if ([...next].some((x) => !prev.has(x))) outbox.triggers.push({ trigger: "labelAdded", issueId });
       }
+    }
+    if (input.fields && Object.keys(input.fields).length) {
+      const changed = await setFieldValues(tx, ctx, cur, input.fields);
+      activity.push(...changed);
     }
 
     const [row] = Object.keys(patch).length
@@ -452,6 +476,9 @@ async function updateIssueIn(tx: Tx, outbox: Outbox, ctx: IssueContext, issueId:
     if (activity.length || input.sortOrder !== undefined) {
       outbox.add({ workspaceId: ctx.workspaceId, entity: "issue", id: issueId });
     }
+    if (stateChange) outbox.triggers.push({ trigger: "stateChanged", issueId });
+    if ("assigneeId" in patch) outbox.triggers.push({ trigger: "assigneeChanged", issueId });
+    if ("priority" in patch) outbox.triggers.push({ trigger: "priorityChanged", issueId });
     return row!;
   }
 }
@@ -468,7 +495,7 @@ export async function addComment(ctx: IssueContext, issueId: string, body: strin
     if (!cur) throw notFound();
     const [row] = await tx
       .insert(comment)
-      .values({ workspaceId: ctx.workspaceId, issueId, authorId: ctx.actorId, body })
+      .values({ workspaceId: ctx.workspaceId, issueId, authorId: ctx.actorId, source: ctx.source ?? null, body })
       .returning();
     const mentioned = extractMentions(body);
     const subs = await subscribers(tx, issueId);
@@ -487,9 +514,11 @@ export async function addComment(ctx: IssueContext, issueId: string, body: strin
       issue: await issuePayload(tx, issueId),
     });
     outbox.add({ workspaceId: ctx.workspaceId, entity: "comment", id: issueId });
+    if (ctx.source !== "automation") outbox.triggers.push({ trigger: "commentAdded", issueId });
     return row!;
   });
   await outbox.flush(ctx.events);
+  await runAutomations(ctx, outbox.triggers);
   return created;
 }
 

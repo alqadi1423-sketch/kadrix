@@ -50,6 +50,13 @@
       "when": 1792167370920,
       "tag": "0006_webhook_locale",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1792170072054,
+      "tag": "0007_extensions",
+      "breakpoints": true
     }
   ]
 }

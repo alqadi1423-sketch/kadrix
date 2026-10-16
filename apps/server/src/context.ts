@@ -48,6 +48,8 @@ export interface AppDeps {
   trustProxy?: number;
   /** Override for outgoing webhook HTTP calls (tests). */
   webhookFetch?: typeof fetch;
+  /** Override for calls to other tools' APIs when importing (tests). */
+  importFetch?: typeof fetch;
 }
 
 export function requireUser(c: Context<Env>): SessionUser {
