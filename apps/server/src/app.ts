@@ -45,7 +45,7 @@ export function createApp(deps: AppDeps) {
   const appOrigin = new URL(deps.baseUrl).origin;
   app.use("*", async (c, next) => {
     const unsafe = !["GET", "HEAD", "OPTIONS"].includes(c.req.method);
-    const cookie = !!c.req.header("cookie") && !c.req.header("authorization");
+    const cookie = !!c.req.header("cookie") && !/^bearer\s/i.test(c.req.header("authorization") ?? "");
     if (unsafe && cookie) {
       const origin = c.req.header("origin");
       const site = c.req.header("sec-fetch-site");
@@ -67,7 +67,7 @@ export function createApp(deps: AppDeps) {
 
   // Credential endpoints get a tight per-address budget on top of Better
   // Auth's own rules, so guessing passwords or mass sign-ups stay slow.
-  const SENSITIVE = /\/auth\/(sign-in|sign-up|forget-password|request-password-reset|reset-password|change-password)/;
+  const SENSITIVE = /\/auth\/(sign-in|sign-up|forget-password|request-password-reset|reset-password|change-password|two-factor\/|delete-user)/;
   const authLimit = rateLimit(deps.authAttemptsPer5Min ?? 0, (c) => `auth:${ipOf(c) ?? "anon"}`, 5 * 60_000);
   app.on(["GET", "POST"], "/auth/*", async (c, next) => (c.req.method === "POST" && SENSITIVE.test(c.req.path) ? authLimit(c, next) : next()), (c) => {
     // Hand Better Auth the address we resolved, never one the client sent.

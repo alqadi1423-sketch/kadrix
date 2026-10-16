@@ -38,6 +38,7 @@ for (const [net, bits] of [
   ["::", 128], // unspecified
   ["::1", 128], // loopback
   ["::", 96], // IPv4-compatible (deprecated)
+  ["2001::", 32], // Teredo tunnels embed an IPv4 address
   ["64:ff9b::", 96], // NAT64 to any IPv4, including private ones
   ["64:ff9b:1::", 48],
   ["100::", 64], // discard
@@ -56,13 +57,15 @@ export function isPrivateAddress(ip: string): boolean {
   if (family === 4) return BLOCKED.check(ip, "ipv4");
   if (family === 6) {
     const v6 = ip.toLowerCase();
-    // ::ffff:a.b.c.d and ::ffff:xxxx:xxxx both map to IPv4.
-    const hex = /^::ffff:([0-9a-f]{1,4}):([0-9a-f]{1,4})$/.exec(v6);
+    // ::ffff:a.b.c.d and ::ffff:xxxx:xxxx map to IPv4, and so does the
+    // "IPv4-translated" ::ffff:0:xxxx:xxxx. (A BlockList rule for these
+    // would also match every plain IPv4 address, so they are unwrapped here.)
+    const hex = /^::ffff:(?:0:)?([0-9a-f]{1,4}):([0-9a-f]{1,4})$/.exec(v6);
     if (hex) {
       const n = (parseInt(hex[1]!, 16) << 16) | parseInt(hex[2]!, 16);
       return BLOCKED.check([n >>> 24, (n >>> 16) & 255, (n >>> 8) & 255, n & 255].join("."), "ipv4");
     }
-    const dotted = /^::ffff:(\d+\.\d+\.\d+\.\d+)$/.exec(v6);
+    const dotted = /^::ffff:(?:0:)?(\d+\.\d+\.\d+\.\d+)$/.exec(v6);
     if (dotted) return BLOCKED.check(dotted[1]!, "ipv4");
     return BLOCKED.check(v6, "ipv6");
   }

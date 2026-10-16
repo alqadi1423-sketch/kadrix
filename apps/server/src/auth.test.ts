@@ -29,6 +29,13 @@ describe("password policy", () => {
 });
 
 describe("credential rate limit", () => {
+  it("also covers two-step codes", async () => {
+    const hit = () =>
+      app.request("/api/auth/two-factor/verify-totp", { method: "POST", headers: { "content-type": "application/json", origin: BASE, "x-forwarded-for": "198.51.100.99" }, body: JSON.stringify({ code: "000000" }) });
+    for (let i = 0; i < 3; i++) await hit();
+    expect((await hit()).status).toBe(429);
+  });
+
   it("slows repeated attempts from one address only", async () => {
     for (let i = 0; i < 3; i++) await signUp(`x${i}@example.com`, "nope");
     expect((await signUp("x9@example.com", "nope")).status).toBe(429);
@@ -59,8 +66,10 @@ describe("two-step sign-in", () => {
     const password = "correct-horse-battery";
     const up = await signUp(email, password, "198.51.100.20");
     const cookie = up.headers.get("set-cookie")!.split(";")[0]!;
+    // This file allows 3 credential attempts per address, so each step comes from its own.
+    let n = 30;
     const post = (path: string, body: unknown, c = cookie) =>
-      app.request(`/api/auth${path}`, { method: "POST", headers: { "content-type": "application/json", origin: BASE, cookie: c, "x-forwarded-for": "198.51.100.20" }, body: JSON.stringify(body) });
+      app.request(`/api/auth${path}`, { method: "POST", headers: { "content-type": "application/json", origin: BASE, cookie: c, "x-forwarded-for": `198.51.100.${n++}` }, body: JSON.stringify(body) });
 
     const enable = await post("/two-factor/enable", { password });
     expect(enable.status).toBe(200);

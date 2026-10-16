@@ -15,7 +15,7 @@ Status: ✅ done · 🔨 in progress · ⏳ not started
 | 4.5 | External review fixes | ✅ |
 | 5 | Reports, automation, import | ✅ |
 | 6 | Future paths: agents, AI, mobile, cloud | ✅ |
-| 7 | Launch readiness | 🔨 |
+| 7 | Launch readiness | ✅ |
 
 ## 0. Foundation ✅
 Monorepo (pnpm, Turborepo), TypeScript, AGPLv3 and CLA, PostgreSQL with
@@ -73,7 +73,17 @@ and "write it up for me" drafts hidden while off. `@veloq/client`, a typed
 client for a future mobile app. Installable PWA with an offline shell.
 Edition features (self-hosted or cloud) exposed by the health endpoint.
 
-## 7. Launch readiness ⏳
-Security review, two-step sign-in (TOTP), upgrade path and versioned releases, images on GHCR,
-bilingual docs including installing without Docker, README as a landing
-page with screenshots, CLA check on pull requests, trademark policy.
+## 7. Launch readiness ✅
+Independent security review and a second pass to verify the fixes (guest
+scoping, SSRF, body limits, CSRF and WebSocket origin checks, automation
+bounds, audit log hardening). Two-step sign-in. Versioned releases: a tag
+builds multi-arch images to GHCR with SBOM and provenance and publishes
+release notes from CHANGELOG.md. Upgrade and backup guide. Install,
+configuration, agents and API docs in Arabic and English, including
+installing without Docker. README landing pages in both languages with
+screenshots. CLA check on pull requests. Trademark and security policies.
+
+## Before the first public release
+Owner decisions, not code: final name check (trademark search), the
+version number to tag, and when to announce. Tagging `v0.1.0` (or any
+version) runs the release workflow.

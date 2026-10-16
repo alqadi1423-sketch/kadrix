@@ -46,6 +46,9 @@ export function ydocToText(doc: Y.Doc): string {
  * document opens; guests and read-only roles join without write access.
  * The document is saved (debounced) as binary state plus plain text.
  */
+/** Largest single sync message accepted (a pasted long document fits easily). */
+const MAX_COLLAB_MESSAGE = 4 * 1024 * 1024;
+
 export function mountCollab(app: Hono, upgradeWebSocket: UpgradeWebSocket, deps: { db: Database; auth: Auth; events: EventBus; baseUrl: string }) {
   const { db, auth, events } = deps;
 
@@ -107,12 +110,23 @@ export function mountCollab(app: Hono, upgradeWebSocket: UpgradeWebSocket, deps:
       const o = c.req.header("origin");
       const ctx = o && o !== new URL(deps.baseUrl).origin ? null : await authorize(c.req.raw.headers, c.req.param("slug") ?? "", c.req.param("pageId") ?? "").catch(() => null);
       let conn: ReturnType<Hocuspocus["handleConnection"]> | null = null;
+      let timer: ReturnType<typeof setInterval> | null = null;
+      const headers = c.req.raw.headers;
+      const slug = c.req.param("slug") ?? "";
+      const pageId = c.req.param("pageId") ?? "";
       return {
         onOpen(_evt, ws) {
           if (!ctx) {
             ws.close(4401, "unauthorized");
             return;
           }
+          // Removed members, or people who lost edit rights, are cut off
+          // within a minute; the editor reconnects with the new rights.
+          timer = setInterval(async () => {
+            const now = await authorize(headers, slug, pageId).catch(() => null);
+            if (!now) ws.close(4403, "forbidden");
+            else if (now.readOnly !== ctx.readOnly) ws.close(4409, "rights changed");
+          }, 60_000);
           const raw = ws.raw as { binaryType?: string } | undefined;
           if (raw) raw.binaryType = "arraybuffer";
           conn = hocuspocus.handleConnection(
@@ -127,13 +141,16 @@ export function mountCollab(app: Hono, upgradeWebSocket: UpgradeWebSocket, deps:
             ctx,
           );
         },
-        onMessage(evt) {
+        onMessage(evt, ws) {
           const d = evt.data;
           const bytes =
             d instanceof ArrayBuffer ? new Uint8Array(d) : ArrayBuffer.isView(d) ? new Uint8Array(d.buffer, d.byteOffset, d.byteLength) : null;
+          // A document update is small; refuse anything that is not.
+          if (bytes && bytes.byteLength > MAX_COLLAB_MESSAGE) return ws.close(1009, "too large");
           if (bytes && conn) conn.handleMessage(bytes);
         },
         onClose() {
+          if (timer) clearInterval(timer);
           conn?.handleClose();
         },
       };

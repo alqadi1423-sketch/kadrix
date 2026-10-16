@@ -3,7 +3,9 @@
  * a network. Only the app shell is cached. API responses never are, so no
  * workspace data is stored on the device by this worker.
  */
-const SHELL = "veloq-shell-v1";
+const SHELL = "veloq-shell-v2";
+/** Old build files are dropped beyond this many, oldest first. */
+const MAX_ASSETS = 80;
 
 self.addEventListener("install", (event) => {
   event.waitUntil(caches.open(SHELL).then((c) => c.addAll(["/", "/manifest.webmanifest", "/icon.svg"])));
@@ -28,7 +30,11 @@ self.addEventListener("fetch", (event) => {
         const hit = await c.match(req);
         if (hit) return hit;
         const res = await fetch(req);
-        if (res.ok) c.put(req, res.clone());
+        if (res.ok) {
+          await c.put(req, res.clone());
+          const keys = (await c.keys()).filter((k) => new URL(k.url).pathname.startsWith("/assets/"));
+          await Promise.all(keys.slice(0, Math.max(0, keys.length - MAX_ASSETS)).map((k) => c.delete(k)));
+        }
         return res;
       }),
     );
@@ -40,7 +46,11 @@ self.addEventListener("fetch", (event) => {
     event.respondWith(
       fetch(req)
         .then((res) => {
-          if (res.ok) caches.open(SHELL).then((c) => c.put("/", res.clone()));
+          if (res.ok) {
+            // Clone now: the page starts reading the response right away.
+            const copy = res.clone();
+            caches.open(SHELL).then((c) => c.put("/", copy));
+          }
           return res;
         })
         .catch(() => caches.match("/")),
