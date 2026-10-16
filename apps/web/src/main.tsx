@@ -2,7 +2,7 @@ import "./styles.css";
 import "./i18n";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Outlet, RouterProvider, createRootRoute, createRoute, createRouter } from "@tanstack/react-router";
-import { StrictMode } from "react";
+import { StrictMode, useEffect, useState } from "react";
 import { createRoot } from "react-dom/client";
 import { useTranslation } from "react-i18next";
 import { authClient } from "./api";
@@ -46,7 +46,13 @@ const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false,
 function Root() {
   const { t } = useTranslation();
   const session = authClient.useSession();
-  if (session.isPending) return <p className="p-8 text-muted">{t("common.loading")}</p>;
+  // Only the first load shows a spinner: later refetches (after sign-in)
+  // must not unmount the sign-in page while it asks for a second factor.
+  const [loaded, setLoaded] = useState(false);
+  useEffect(() => {
+    if (!session.isPending) setLoaded(true);
+  }, [session.isPending]);
+  if (!loaded && session.isPending) return <p className="p-8 text-muted">{t("common.loading")}</p>;
   if (!session.data) return <AuthPage onDone={() => void session.refetch()} />;
   return <Outlet />;
 }

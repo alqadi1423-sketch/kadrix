@@ -1,9 +1,10 @@
 import type { AutomationAction, AutomationTrigger, Condition, CsvMapping, FieldKind, IssueFilter, IssueType, Role, StateCategory } from "@veloq/core";
 import type { ErrorCode } from "@veloq/i18n";
+import { twoFactorClient } from "better-auth/client/plugins";
 import { createAuthClient } from "better-auth/react";
 import { i18n } from "./i18n";
 
-export const authClient = createAuthClient({ baseURL: window.location.origin });
+export const authClient = createAuthClient({ baseURL: window.location.origin, plugins: [twoFactorClient()] });
 
 /** Error carrying an API error code that maps to `errors.*` translations. */
 export class ApiCallError extends Error {

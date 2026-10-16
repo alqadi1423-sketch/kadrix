@@ -40,6 +40,7 @@ export const user = pgTable("user", {
   email: text("email").notNull().unique(),
   emailVerified: boolean("email_verified").notNull().default(false),
   image: text("image"),
+  twoFactorEnabled: boolean("two_factor_enabled").notNull().default(false),
   /** "agent" for AI coding agents and bots: no password, act only through API tokens. */
   kind: text("kind").notNull().default("human"),
   /** Agents belong to one workspace and are removed with it. */
@@ -95,6 +96,23 @@ export const verification = pgTable("verification", {
   createdAt: createdAt(),
   updatedAt: updatedAt(),
 });
+
+/** TOTP secrets and backup codes (Better Auth two-factor plugin), encrypted by it. */
+export const twoFactor = pgTable(
+  "two_factor",
+  {
+    id: text("id").primaryKey(),
+    secret: text("secret").notNull(),
+    backupCodes: text("backup_codes").notNull(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    verified: boolean("verified").notNull().default(true),
+    failedVerificationCount: integer("failed_verification_count").notNull().default(0),
+    lockedUntil: timestamp("locked_until", { withTimezone: true }),
+  },
+  (t) => [index("two_factor_user_idx").on(t.userId), index("two_factor_secret_idx").on(t.secret)],
+);
 
 /* ------------------------------------------------------------------ */
 /* Tenancy. Every tenant-owned row carries workspace_id.              */

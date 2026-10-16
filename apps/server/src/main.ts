@@ -24,7 +24,9 @@ await runMigrations(config.databaseUrl, process.env.MIGRATIONS_DIR || undefined)
 
 const { db } = createDb(config.databaseUrl);
 // Setting the attempt budget to 0 turns off both layers of auth rate limiting.
-const auth = createAuth(db, { secret: config.authSecret, baseUrl: config.baseUrl, rateLimit: config.authAttemptsPer5Min > 0 });
+const auth = createAuth(db, { secret: config.authSecret, baseUrl: config.baseUrl, rateLimit: config.authAttemptsPer5Min > 0,
+  breachCheck: config.passwordBreachCheck,
+});
 const events = createPgEventBus(config.databaseUrl);
 const storage = createDiskStorage(config.dataDir);
 const sealer = createSealer(config.authSecret);

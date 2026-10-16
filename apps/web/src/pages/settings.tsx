@@ -3,7 +3,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useParams } from "@tanstack/react-router";
 import { useState, type FormEvent, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
-import { api, type AuditEntry } from "../api";
+import { api, authClient, type AuditEntry } from "../api";
 import { Avatar, LabelChip, StateIcon } from "../components/icons";
 import { keys, useLabels, useMembers, useProject, useProjects, useWorkspace } from "../lib/hooks";
 import { Button, ErrorText, Field, Panel, Select } from "../ui";
@@ -52,7 +52,12 @@ export function SettingsPage({ extraTabs = [] }: { extraTabs?: { id: string; lab
       {current === "labels" && <Labels slug={slug} canManage={can(role, "label.manage")} />}
       {current === "workflow" && <Workflow slug={slug} />}
       {current === "audit" && <Audit slug={slug} />}
-      {current === "preferences" && <Preferences />}
+      {current === "preferences" && (
+        <div className="space-y-6">
+          <Preferences />
+          <TwoFactorPanel />
+        </div>
+      )}
       {extra?.render(slug)}
     </div>
   );
@@ -441,6 +446,99 @@ function GuestProjects({ slug, userId, selected }: { slug: string; userId: strin
       </div>
       <ErrorText error={save.error} />
     </details>
+  );
+}
+
+function TwoFactorPanel() {
+  const { t } = useTranslation();
+  const session = authClient.useSession();
+  const on = !!(session.data?.user as { twoFactorEnabled?: boolean } | undefined)?.twoFactorEnabled;
+  const [setup, setSetup] = useState<{ uri: string; secret: string; codes: string[]; qr: string } | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+
+  async function start(password: string) {
+    setBusy(true);
+    setError(null);
+    const res = await authClient.twoFactor.enable({ password });
+    setBusy(false);
+    if (res.error || !res.data || !("totpURI" in res.data)) return setError(t("auth.badCredentials"));
+    const uri = res.data.totpURI;
+    const { toDataURL } = await import("qrcode");
+    setSetup({ uri, secret: new URL(uri).searchParams.get("secret") ?? "", codes: res.data.backupCodes, qr: await toDataURL(uri, { margin: 1, width: 192 }) });
+  }
+  async function verify(code: string) {
+    setBusy(true);
+    const res = await authClient.twoFactor.verifyTotp({ code });
+    setBusy(false);
+    if (res.error) return setError(t("twoFactor.wrongCode"));
+    setSetup(null);
+    void session.refetch();
+  }
+  async function stop(password: string) {
+    setBusy(true);
+    const res = await authClient.twoFactor.disable({ password });
+    setBusy(false);
+    if (res.error) return setError(t("auth.badCredentials"));
+    void session.refetch();
+  }
+
+  return (
+    <Panel title={t("twoFactor.title")} action={<span className={`text-sm ${on ? "text-[#2e8b57]" : "text-muted"}`}>{on ? t("twoFactor.on") : t("twoFactor.off")}</span>}>
+      <p className="mb-4 text-sm text-muted">{t("twoFactor.intro")}</p>
+      {setup ? (
+        <form
+          className="space-y-4"
+          onSubmit={(e) => {
+            e.preventDefault();
+            void verify(String(new FormData(e.currentTarget).get("code")).replace(/\s/g, ""));
+          }}
+        >
+          <p className="text-sm">{t("twoFactor.scan")}</p>
+          <img src={setup.qr} alt="" width={192} height={192} className="rounded bg-white p-1" />
+          <div>
+            <div className="text-xs text-muted">{t("twoFactor.secret")}</div>
+            <code dir="ltr" className="break-all text-sm">
+              {setup.secret}
+            </code>
+          </div>
+          <div>
+            <div className="text-sm font-medium">{t("twoFactor.backupCodes")}</div>
+            <p className="text-xs text-muted">{t("twoFactor.backupHint")}</p>
+            <ul dir="ltr" className="mt-2 grid grid-cols-2 gap-1 font-mono text-sm sm:grid-cols-5">
+              {setup.codes.map((c) => (
+                <li key={c}>{c}</li>
+              ))}
+            </ul>
+          </div>
+          <div className="flex items-end gap-2">
+            <Field label={t("twoFactor.code")} name="code" required dir="ltr" inputMode="numeric" autoComplete="one-time-code" />
+            <Button type="submit" disabled={busy}>
+              {t("twoFactor.verify")}
+            </Button>
+          </div>
+        </form>
+      ) : (
+        <form
+          className="flex flex-wrap items-end gap-2"
+          onSubmit={(e) => {
+            e.preventDefault();
+            const pw = String(new FormData(e.currentTarget).get("password"));
+            void (on ? stop(pw) : start(pw));
+          }}
+        >
+          <Field label={t("twoFactor.password")} name="password" type="password" required autoComplete="current-password" dir="auto" />
+          <Button type="submit" variant={on ? "danger" : "primary"} disabled={busy}>
+            {on ? t("twoFactor.disable") : t("twoFactor.enable")}
+          </Button>
+        </form>
+      )}
+      {error && (
+        <p role="alert" className="mt-3 text-sm text-danger">
+          {error}
+        </p>
+      )}
+    </Panel>
   );
 }
 

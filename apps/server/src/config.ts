@@ -17,6 +17,7 @@ export interface Config {
   trustProxy: number;
   smtpUrl: string | null;
   ai: AiConfig;
+  passwordBreachCheck: boolean;
   mailFrom: string;
 }
 
@@ -40,6 +41,7 @@ export function loadConfig(env = process.env): Config {
     authAttemptsPer5Min: Number(env.AUTH_ATTEMPTS_PER_5_MIN ?? 20),
     trustProxy: Number(env.TRUST_PROXY ?? 0),
     smtpUrl: env.SMTP_URL || null,
+    passwordBreachCheck: env.PASSWORD_BREACH_CHECK === "1",
     ai: {
       provider: env.AI_PROVIDER === "anthropic" || env.AI_PROVIDER === "openai-compatible" ? env.AI_PROVIDER : null,
       baseUrl: env.AI_BASE_URL || null,

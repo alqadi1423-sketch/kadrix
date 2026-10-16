@@ -6,7 +6,8 @@ import { Button, Field } from "../ui";
 
 export function AuthPage({ onDone }: { onDone: () => void }) {
   const { t } = useTranslation();
-  const [mode, setMode] = useState<"signIn" | "signUp">("signIn");
+  const [mode, setMode] = useState<"signIn" | "signUp" | "code">("signIn");
+  const [backup, setBackup] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [show, setShow] = useState(false);
@@ -41,7 +42,67 @@ export function AuthPage({ onDone }: { onDone: () => void }) {
         : await authClient.signIn.email({ email, password });
     setBusy(false);
     if (res.error) setError(authMessage(res.error));
+    else if ((res.data as { twoFactorRedirect?: boolean } | null)?.twoFactorRedirect) setMode("code");
     else onDone();
+  }
+
+  async function submitCode(e: FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    const f = new FormData(e.currentTarget);
+    const code = String(f.get("code")).replace(/\s/g, "");
+    setBusy(true);
+    setError(null);
+    const res = backup
+      ? await authClient.twoFactor.verifyBackupCode({ code })
+      : await authClient.twoFactor.verifyTotp({ code, trustDevice: f.get("trust") === "on" });
+    setBusy(false);
+    if (res.error) setError(res.error.status === 429 ? t("errors.rateLimited") : t("twoFactor.wrongCode"));
+    else onDone();
+  }
+
+  if (mode === "code") {
+    return (
+      <div className="grid min-h-dvh place-items-center px-4">
+        <div className="w-full max-w-sm">
+          <div className="mb-8 flex items-center justify-between">
+            <Brand />
+            <LanguageSwitch />
+          </div>
+          <h1 className="mb-1 text-2xl font-semibold">{t("twoFactor.title")}</h1>
+          <p className="mb-6 text-muted">{backup ? t("twoFactor.backupHint") : t("twoFactor.enterCode")}</p>
+          <form onSubmit={submitCode} className="space-y-4">
+            <Field
+              key={String(backup)}
+              label={backup ? t("twoFactor.backupCodes") : t("twoFactor.code")}
+              name="code"
+              required
+              autoFocus
+              dir="ltr"
+              autoComplete="one-time-code"
+              inputMode={backup ? "text" : "numeric"}
+              pattern={backup ? undefined : "[0-9 ]{6,7}"}
+            />
+            {!backup && (
+              <label className="flex items-center gap-2 text-sm">
+                <input type="checkbox" name="trust" className="accent-petrol" />
+                {t("twoFactor.trustDevice")}
+              </label>
+            )}
+            {error && (
+              <p role="alert" className="text-sm text-danger">
+                {error}
+              </p>
+            )}
+            <Button type="submit" disabled={busy} className="w-full">
+              {t("twoFactor.verify")}
+            </Button>
+          </form>
+          <button className="mt-6 text-sm text-petrol underline" onClick={() => setBackup(!backup)}>
+            {backup ? t("twoFactor.useApp") : t("twoFactor.useBackup")}
+          </button>
+        </div>
+      </div>
+    );
   }
 
   return (

@@ -2,6 +2,7 @@ import { schema, type Database } from "@veloq/db";
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { APIError, createAuthMiddleware } from "better-auth/api";
+import { haveIBeenPwned, twoFactor } from "better-auth/plugins";
 import { passwordProblem } from "./password.js";
 
 /** Header the API sets to the resolved client address before calling auth. */
@@ -12,6 +13,8 @@ export interface AuthOptions {
   baseUrl: string;
   /** Better Auth's own limiter (strict rules for sign-in and sign-up). Off in tests. */
   rateLimit?: boolean;
+  /** Refuse passwords found in known breaches (asks Have I Been Pwned with k-anonymity). */
+  breachCheck?: boolean;
 }
 
 export function createAuth(db: Database, opts: AuthOptions) {
@@ -26,8 +29,11 @@ export function createAuth(db: Database, opts: AuthOptions) {
         session: schema.session,
         account: schema.account,
         verification: schema.verification,
+        twoFactor: schema.twoFactor,
       },
     }),
+    // Two-step sign-in with an authenticator app, plus one-time backup codes.
+    plugins: [twoFactor({ issuer: "Veloq" }), ...(opts.breachCheck ? [haveIBeenPwned()] : [])],
     // NIST SP 800-63B-4: 15+ characters when a password is the only factor,
     // long passphrases allowed, no composition rules, common choices refused.
     emailAndPassword: {
