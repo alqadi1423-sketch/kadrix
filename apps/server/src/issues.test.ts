@@ -256,7 +256,10 @@ describe("collaboration", () => {
     const i = await newIssue(w.owner, w.projectId);
     await w.owner.call("PATCH", `/workspaces/acme/issues/${i.id}`, { priority: 1, title: "Renamed" });
     const act = await w.owner.json<{ activity: { field: string }[] }>("GET", `/workspaces/acme/issues/${i.id}/activity`);
-    expect(act.data.activity.map((a) => a.field)).toEqual(["created", "title", "priority"]);
+    // One update writes its rows with the same timestamp, so their order is free.
+    const fields = act.data.activity.map((a) => a.field);
+    expect(fields[0]).toBe("created");
+    expect(fields.slice(1).sort()).toEqual(["priority", "title"]);
     expect(t.events.events.slice(before).some((e) => e.entity === "issue" && e.id === i.id)).toBe(true);
   });
 
