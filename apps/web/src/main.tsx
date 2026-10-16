@@ -22,7 +22,7 @@ import { WorkspacesPage } from "./pages/workspaces";
 import { Shell } from "./shell";
 import { AgentsSettings, IntegrationsSettings, TokensSettings, WebhooksSettings } from "./components/dev";
 import { AutomationSettings, FieldsSettings, ImportSettings } from "./components/settings-extend";
-import { can } from "@veloq/core";
+import { can } from "@kadrix/core";
 
 function Settings() {
   const { t } = useTranslation();

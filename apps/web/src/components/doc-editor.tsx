@@ -71,7 +71,7 @@ export function DocEditor({ slug, pageId, userName, readOnly }: { slug: string; 
         Placeholder.configure({ placeholder: t("docs.placeholder", { example: "WEB-12" }) }),
         AutoDirection,
       ],
-      editorProps: { attributes: { class: "prose-veloq min-h-[50vh] outline-none", "aria-label": t("docs.title") } },
+      editorProps: { attributes: { class: "prose-kadrix min-h-[50vh] outline-none", "aria-label": t("docs.title") } },
     },
     [doc, provider, readOnly],
   );

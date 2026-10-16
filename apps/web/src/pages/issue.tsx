@@ -1,4 +1,4 @@
-import { ISSUE_TYPES, PRIORITY_KEYS, can, parseIssueKey } from "@veloq/core";
+import { ISSUE_TYPES, PRIORITY_KEYS, can, parseIssueKey } from "@kadrix/core";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useNavigate, useParams } from "@tanstack/react-router";
 import { useEffect, useState, type ReactNode } from "react";

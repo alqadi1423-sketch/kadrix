@@ -1,4 +1,4 @@
-import { issue, projectAccess, workspace, workspaceMember, type Database } from "@veloq/db";
+import { issue, projectAccess, workspace, workspaceMember, type Database } from "@kadrix/db";
 import { and, eq } from "drizzle-orm";
 import type { Hono } from "hono";
 import type { UpgradeWebSocket } from "hono/ws";

@@ -9,7 +9,7 @@ import {
   prMappingSchema,
   releaseSchema,
   type PrEvent,
-} from "@veloq/core";
+} from "@kadrix/core";
 import {
   apiToken,
   integration,
@@ -22,7 +22,7 @@ import {
   webhookDelivery,
   workflowState,
   type Database,
-} from "@veloq/db";
+} from "@kadrix/db";
 import { and, asc, desc, eq, inArray, isNull, sql } from "drizzle-orm";
 import { Hono } from "hono";
 import { z } from "zod";

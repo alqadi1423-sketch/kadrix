@@ -1,5 +1,5 @@
-import { CLOSED_CATEGORIES, buildTsQuery, foldSearchText, issueKey, type IssueFilter } from "@veloq/core";
-import { issue, issueLabel, project, user, workflowState, type Database } from "@veloq/db";
+import { CLOSED_CATEGORIES, buildTsQuery, foldSearchText, issueKey, type IssueFilter } from "@kadrix/core";
+import { issue, issueLabel, project, user, workflowState, type Database } from "@kadrix/db";
 import { and, asc, desc, eq, gte, inArray, lte, notInArray, or, sql, type SQL } from "drizzle-orm";
 
 /** Shape returned for issues everywhere in the API. */

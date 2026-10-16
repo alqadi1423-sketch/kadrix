@@ -5,6 +5,6 @@ export default defineConfig({
   schema: "./src/schema.ts",
   out: "./migrations",
   dbCredentials: {
-    url: process.env.DATABASE_URL ?? "postgres://veloq:veloq@localhost:5432/veloq",
+    url: process.env.DATABASE_URL ?? "postgres://kadrix:kadrix@localhost:5432/kadrix",
   },
 });

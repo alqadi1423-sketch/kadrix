@@ -8,7 +8,7 @@ To change a decision, edit this file in the same pull request as the code.
 
 | # | Decision |
 |---|---|
-| 1 | Name: **Veloq** (may change later) |
+| 1 | Name: **Kadrix**. The first name, Veloq, was dropped before release: it is already a software brand (Rohlik Group, veloq.com) and Velqo is a delivery platform in the same field. |
 | 2 | License: **GNU AGPL v3 or later** |
 | 3 | Contributions under a **CLA**, keeping the option of a paid edition |
 | 4 | **Arabic and English as equals** from day one, full RTL. **Gregorian** calendar only |

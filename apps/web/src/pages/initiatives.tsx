@@ -1,4 +1,4 @@
-import { HEALTH, can } from "@veloq/core";
+import { HEALTH, can } from "@kadrix/core";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useParams } from "@tanstack/react-router";
 import { useState, type FormEvent } from "react";

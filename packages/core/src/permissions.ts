@@ -1,5 +1,5 @@
 /**
- * Central permission model. Every authorization decision in Veloq goes
+ * Central permission model. Every authorization decision in Kadrix goes
  * through `can()`. Never check roles directly anywhere else.
  */
 

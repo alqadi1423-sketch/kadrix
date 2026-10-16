@@ -4,8 +4,8 @@ WORKDIR /app
 RUN corepack enable
 COPY . .
 RUN pnpm install --frozen-lockfile
-RUN pnpm --filter @veloq/web build && pnpm --filter @veloq/server build
-RUN pnpm --filter @veloq/server deploy --prod --legacy /out
+RUN pnpm --filter @kadrix/web build && pnpm --filter @kadrix/server build
+RUN pnpm --filter @kadrix/server deploy --prod --legacy /out
 
 FROM node:22-alpine
 WORKDIR /app

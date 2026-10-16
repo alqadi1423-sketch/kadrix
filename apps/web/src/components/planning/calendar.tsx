@@ -1,4 +1,4 @@
-import { addDays, formatDate, parseDate } from "@veloq/core";
+import { addDays, formatDate, parseDate } from "@kadrix/core";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { useState } from "react";

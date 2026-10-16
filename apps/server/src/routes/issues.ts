@@ -6,7 +6,7 @@ import {
   relationSchema,
   savedViewSchema,
   updateIssueSchema,
-} from "@veloq/core";
+} from "@kadrix/core";
 import {
   attachment,
   comment,
@@ -18,7 +18,7 @@ import {
   project,
   savedView,
   user,
-} from "@veloq/db";
+} from "@kadrix/db";
 import { and, asc, desc, eq, inArray, isNull, or } from "drizzle-orm";
 import { Hono } from "hono";
 import { z } from "zod";

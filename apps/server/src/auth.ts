@@ -1,4 +1,4 @@
-import { schema, type Database } from "@veloq/db";
+import { schema, type Database } from "@kadrix/db";
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { APIError, createAuthMiddleware } from "better-auth/api";
@@ -6,7 +6,7 @@ import { haveIBeenPwned, twoFactor } from "better-auth/plugins";
 import { passwordProblem } from "./password.js";
 
 /** Header the API sets to the resolved client address before calling auth. */
-export const CLIENT_IP_HEADER = "x-veloq-client-ip";
+export const CLIENT_IP_HEADER = "x-kadrix-client-ip";
 
 export interface AuthOptions {
   secret: string;
@@ -33,7 +33,7 @@ export function createAuth(db: Database, opts: AuthOptions) {
       },
     }),
     // Two-step sign-in with an authenticator app, plus one-time backup codes.
-    plugins: [twoFactor({ issuer: "Veloq" }), ...(opts.breachCheck ? [haveIBeenPwned()] : [])],
+    plugins: [twoFactor({ issuer: "Kadrix" }), ...(opts.breachCheck ? [haveIBeenPwned()] : [])],
     // NIST SP 800-63B-4: 15+ characters when a password is the only factor,
     // long passphrases allowed, no composition rules, common choices refused.
     emailAndPassword: {
@@ -47,7 +47,7 @@ export function createAuth(db: Database, opts: AuthOptions) {
       before: createAuthMiddleware(async (ctx) => {
         const body = (ctx.body ?? {}) as Record<string, unknown>;
         // Agent accounts never sign in or reset a password; they use tokens.
-        if (typeof body.email === "string" && body.email.toLowerCase().endsWith("@agents.veloq.invalid")) {
+        if (typeof body.email === "string" && body.email.toLowerCase().endsWith("@agents.kadrix.invalid")) {
           throw new APIError("FORBIDDEN", { message: "Agents sign in with API tokens", code: "AGENT_ACCOUNT" });
         }
         const pw = ctx.path === "/sign-up/email" || ctx.path === "/reset-password" ? body.password ?? body.newPassword : ctx.path === "/change-password" ? body.newPassword : undefined;

@@ -1,6 +1,6 @@
-# Installing Veloq
+# Installing Kadrix
 
-Veloq is one Node.js server (API and web app together) and a PostgreSQL
+Kadrix is one Node.js server (API and web app together) and a PostgreSQL
 database. You can run it with Docker or directly on a Linux server.
 
 **Minimum:** 1 CPU, 1 GB RAM, 5 GB disk, for a team of up to about 50 people.
@@ -16,7 +16,7 @@ You need Docker with the Compose plugin.
 
 ```bash
 git clone https://github.com/alqadi1423-sketch/veloq.git
-cd veloq
+cd kadrix
 cp .env.example .env
 ```
 
@@ -25,7 +25,7 @@ Edit `.env` and set at least these two values:
 ```bash
 AUTH_SECRET=$(openssl rand -base64 48)   # paste the output, keep it secret
 POSTGRES_PASSWORD=$(openssl rand -base64 24)
-BASE_URL=https://veloq.example.com       # the address people will use
+BASE_URL=https://kadrix.example.com       # the address people will use
 ```
 
 Start it:
@@ -37,8 +37,8 @@ docker compose up -d
 Open `BASE_URL` (or http://localhost:3000) and create the first account.
 Database migrations run automatically every time the server starts.
 
-Your data lives in two Docker volumes: `veloq-db` (the database) and
-`veloq-data` (uploaded files). Back up both; see [Upgrading and backups](upgrade.md).
+Your data lives in two Docker volumes: `kadrix-db` (the database) and
+`kadrix-data` (uploaded files). Back up both; see [Upgrading and backups](upgrade.md).
 
 ## Without Docker
 
@@ -52,68 +52,68 @@ Tested on Ubuntu 24.04 and Debian 12. You need:
 
 ```bash
 sudo apt install postgresql
-sudo -u postgres psql -c "CREATE USER veloq WITH PASSWORD 'choose-a-password';"
-sudo -u postgres psql -c "CREATE DATABASE veloq OWNER veloq;"
+sudo -u postgres psql -c "CREATE USER kadrix WITH PASSWORD 'choose-a-password';"
+sudo -u postgres psql -c "CREATE DATABASE kadrix OWNER kadrix;"
 ```
 
-Veloq creates the extension it needs (`pg_trgm`) in its first migration.
+Kadrix creates the extension it needs (`pg_trgm`) in its first migration.
 If your database user cannot create extensions, run this once as a superuser:
 
 ```bash
-sudo -u postgres psql -d veloq -c "CREATE EXTENSION IF NOT EXISTS pg_trgm;"
+sudo -u postgres psql -d kadrix -c "CREATE EXTENSION IF NOT EXISTS pg_trgm;"
 ```
 
 ### 2. Build
 
 ```bash
-sudo useradd --system --create-home --home-dir /opt/veloq veloq
-sudo -u veloq git clone https://github.com/alqadi1423-sketch/veloq.git /opt/veloq/app
-cd /opt/veloq/app
-sudo -u veloq corepack enable --install-directory /opt/veloq/bin
-sudo -u veloq /opt/veloq/bin/pnpm install --frozen-lockfile
-sudo -u veloq /opt/veloq/bin/pnpm build
+sudo useradd --system --create-home --home-dir /opt/kadrix kadrix
+sudo -u kadrix git clone https://github.com/alqadi1423-sketch/veloq.git /opt/kadrix/app
+cd /opt/kadrix/app
+sudo -u kadrix corepack enable --install-directory /opt/kadrix/bin
+sudo -u kadrix /opt/kadrix/bin/pnpm install --frozen-lockfile
+sudo -u kadrix /opt/kadrix/bin/pnpm build
 ```
 
 ### 3. Configure
 
-Create `/opt/veloq/veloq.env` (readable only by the `veloq` user):
+Create `/opt/kadrix/kadrix.env` (readable only by the `kadrix` user):
 
 ```bash
-DATABASE_URL=postgres://veloq:choose-a-password@localhost:5432/veloq
+DATABASE_URL=postgres://kadrix:choose-a-password@localhost:5432/kadrix
 AUTH_SECRET=paste-the-output-of-openssl-rand-base64-48
-BASE_URL=https://veloq.example.com
+BASE_URL=https://kadrix.example.com
 PORT=3000
-WEB_DIST=/opt/veloq/app/apps/web/dist
-MIGRATIONS_DIR=/opt/veloq/app/packages/db/migrations
-DATA_DIR=/opt/veloq/data
+WEB_DIST=/opt/kadrix/app/apps/web/dist
+MIGRATIONS_DIR=/opt/kadrix/app/packages/db/migrations
+DATA_DIR=/opt/kadrix/data
 NODE_ENV=production
 ```
 
 ```bash
-sudo chmod 600 /opt/veloq/veloq.env && sudo chown veloq /opt/veloq/veloq.env
-sudo -u veloq mkdir -p /opt/veloq/data
+sudo chmod 600 /opt/kadrix/kadrix.env && sudo chown kadrix /opt/kadrix/kadrix.env
+sudo -u kadrix mkdir -p /opt/kadrix/data
 ```
 
 All settings are listed in [Configuration](configuration.md).
 
 ### 4. Run as a service
 
-`/etc/systemd/system/veloq.service`:
+`/etc/systemd/system/kadrix.service`:
 
 ```ini
 [Unit]
-Description=Veloq
+Description=Kadrix
 After=network.target postgresql.service
 
 [Service]
-User=veloq
-WorkingDirectory=/opt/veloq/app
-EnvironmentFile=/opt/veloq/veloq.env
+User=kadrix
+WorkingDirectory=/opt/kadrix/app
+EnvironmentFile=/opt/kadrix/kadrix.env
 ExecStart=/usr/bin/node apps/server/dist/main.js
 Restart=on-failure
 NoNewPrivileges=true
 ProtectSystem=strict
-ReadWritePaths=/opt/veloq/data
+ReadWritePaths=/opt/kadrix/data
 
 [Install]
 WantedBy=multi-user.target
@@ -121,20 +121,20 @@ WantedBy=multi-user.target
 
 ```bash
 sudo systemctl daemon-reload
-sudo systemctl enable --now veloq
+sudo systemctl enable --now kadrix
 curl http://localhost:3000/api/health
 ```
 
 ## Behind a reverse proxy
 
-Put Veloq behind a proxy that handles HTTPS, and set `TRUST_PROXY=1` so
-Veloq sees each visitor's real address (used for rate limits). WebSockets
+Put Kadrix behind a proxy that handles HTTPS, and set `TRUST_PROXY=1` so
+Kadrix sees each visitor's real address (used for rate limits). WebSockets
 must be passed through (live updates and shared editing use them).
 
 Caddy (gets certificates automatically):
 
 ```
-veloq.example.com {
+kadrix.example.com {
   reverse_proxy localhost:3000
 }
 ```
@@ -144,7 +144,7 @@ Nginx:
 ```nginx
 server {
   listen 443 ssl http2;
-  server_name veloq.example.com;
+  server_name kadrix.example.com;
   # ssl_certificate ...; ssl_certificate_key ...;
   client_max_body_size 30m;
 

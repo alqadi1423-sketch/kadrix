@@ -1,4 +1,4 @@
-import { issueTransition } from "@veloq/db";
+import { issueTransition } from "@kadrix/db";
 import { eq } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { setupTestApp, type TestUser } from "./test-utils.js";
@@ -44,7 +44,7 @@ describe("projects", () => {
   it("creates default workflow states in the caller's language", async () => {
     const owner = await t.signUp("Owner");
     await owner.call("POST", "/workspaces", { name: "Acme", slug: "acme" });
-    const r = await owner.call("POST", "/workspaces/acme/projects", { name: "منصة", key: "MNS" }, { "x-veloq-locale": "ar" });
+    const r = await owner.call("POST", "/workspaces/acme/projects", { name: "منصة", key: "MNS" }, { "x-kadrix-locale": "ar" });
     const { project } = (await r.json()) as { project: { id: string; key: string } };
     expect(project.key).toBe("MNS");
     const { states } = (await (await owner.call("GET", `/workspaces/acme/projects/${project.id}`)).json()) as {

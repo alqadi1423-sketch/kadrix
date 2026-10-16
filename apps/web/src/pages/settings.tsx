@@ -1,4 +1,4 @@
-import { ROLES, STATE_CATEGORIES, can, canManageRole, type Role, type StateCategory } from "@veloq/core";
+import { ROLES, STATE_CATEGORIES, can, canManageRole, type Role, type StateCategory } from "@kadrix/core";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useParams } from "@tanstack/react-router";
 import { useState, type FormEvent, type ReactNode } from "react";

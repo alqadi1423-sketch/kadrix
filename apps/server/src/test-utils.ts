@@ -1,4 +1,4 @@
-import { createDb, runMigrations } from "@veloq/db";
+import { createDb, runMigrations } from "@kadrix/db";
 import { sql } from "drizzle-orm";
 import { expect } from "vitest";
 import { createApp } from "./app.js";

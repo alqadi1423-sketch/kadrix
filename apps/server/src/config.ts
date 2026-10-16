@@ -1,4 +1,4 @@
-import { parseEdition, type Edition } from "@veloq/core";
+import { parseEdition, type Edition } from "@kadrix/core";
 import type { AiConfig } from "./ai.js";
 
 export interface Config {
@@ -33,7 +33,7 @@ export function loadConfig(env = process.env): Config {
     authSecret,
     baseUrl: env.BASE_URL ?? "http://localhost:3000",
     port: Number(env.PORT ?? 3000),
-    edition: parseEdition(env.VELOQ_EDITION),
+    edition: parseEdition(env.KADRIX_EDITION),
     webDist: env.WEB_DIST ?? null,
     dataDir: env.DATA_DIR ?? "./data",
     allowPrivateWebhooks: env.WEBHOOK_ALLOW_PRIVATE === "1",
@@ -48,6 +48,6 @@ export function loadConfig(env = process.env): Config {
       apiKey: env.AI_API_KEY || null,
       model: env.AI_MODEL || null,
     },
-    mailFrom: env.MAIL_FROM ?? "Veloq <no-reply@localhost>",
+    mailFrom: env.MAIL_FROM ?? "Kadrix <no-reply@localhost>",
   };
 }

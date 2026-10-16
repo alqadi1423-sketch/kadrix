@@ -12,7 +12,7 @@ const T = {
     "comment.created": (i: any) => `New comment on ${i.key}: ${i.title}`,
     "release.published": (r: any) => `Release ${r.version} published`,
     "cycle.completed": () => "A cycle was completed",
-    ping: () => "Veloq webhook test",
+    ping: () => "Kadrix webhook test",
   },
   ar: {
     "issue.created": (i: any) => `مهمة جديدة ${i.key}: ${i.title}`,
@@ -21,7 +21,7 @@ const T = {
     "comment.created": (i: any) => `تعليق جديد على ${i.key}: ${i.title}`,
     "release.published": (r: any) => `نُشر الإصدار ${r.version}`,
     "cycle.completed": () => "اكتملت دورة عمل",
-    ping: () => "تجربة خطاف Veloq",
+    ping: () => "تجربة خطاف Kadrix",
   },
 } as const;
 

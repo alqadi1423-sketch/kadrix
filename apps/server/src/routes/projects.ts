@@ -5,9 +5,9 @@ import {
   labelSchema,
   updateProjectSchema,
   updateStateSchema,
-} from "@veloq/core";
-import { issue, label, project, workflowState } from "@veloq/db";
-import { messages } from "@veloq/i18n";
+} from "@kadrix/core";
+import { issue, label, project, workflowState } from "@kadrix/db";
+import { messages } from "@kadrix/i18n";
 import { and, asc, count, eq, inArray, isNull, sql } from "drizzle-orm";
 import { Hono, type Context } from "hono";
 import { recordAudit } from "../audit.js";
@@ -16,7 +16,7 @@ import { ApiError, invalid, notFound } from "../errors.js";
 
 /** Picks the request language for data created on the user's behalf. */
 export function requestLocale(c: Context): "ar" | "en" {
-  const h = c.req.header("x-veloq-locale") ?? c.req.header("accept-language") ?? "";
+  const h = c.req.header("x-kadrix-locale") ?? c.req.header("accept-language") ?? "";
   return h.toLowerCase().startsWith("ar") ? "ar" : "en";
 }
 

@@ -1,26 +1,26 @@
-import type { IssueFilter, IssueType, Role, StateCategory } from "@veloq/core";
+import type { IssueFilter, IssueType, Role, StateCategory } from "@kadrix/core";
 
 /**
- * Platform-neutral Veloq API client. It only needs `fetch`, so the same
+ * Platform-neutral Kadrix API client. It only needs `fetch`, so the same
  * code runs in React Native, Node scripts, browsers and edge functions.
  * Authenticate with an API token (mobile and scripts) or, in a browser on
  * the same origin, with the session cookie.
  */
 
 export interface ClientOptions {
-  /** Server address, e.g. https://veloq.example.com */
+  /** Server address, e.g. https://kadrix.example.com */
   baseUrl: string;
-  /** API token (vlq_...). Leave out to use cookies in a browser. */
+  /** API token (kdx_...). Leave out to use cookies in a browser. */
   token?: string;
   /** "ar" or "en": language for server-made text such as default state names. */
   locale?: "ar" | "en";
   fetch?: typeof fetch;
 }
 
-export class VeloqError extends Error {
+export class KadrixError extends Error {
   constructor(
     public readonly status: number,
-    /** Stable code; translate it with the `errors.*` messages of @veloq/i18n. */
+    /** Stable code; translate it with the `errors.*` messages of @kadrix/i18n. */
     public readonly code: string,
   ) {
     super(`${status} ${code}`);
@@ -107,13 +107,13 @@ export function createClient(opts: ClientOptions) {
       headers: {
         accept: "application/json",
         ...(opts.token ? { authorization: `Bearer ${opts.token}` } : {}),
-        ...(opts.locale ? { "x-veloq-locale": opts.locale } : {}),
+        ...(opts.locale ? { "x-kadrix-locale": opts.locale } : {}),
         ...(body !== undefined ? { "content-type": "application/json" } : {}),
       },
       body: body !== undefined ? JSON.stringify(body) : undefined,
     });
     const data = (await res.json().catch(() => null)) as (T & { error?: string }) | null;
-    if (!res.ok) throw new VeloqError(res.status, data?.error ?? "generic");
+    if (!res.ok) throw new KadrixError(res.status, data?.error ?? "generic");
     return data as T;
   }
   const ws = (slug: string) => `/workspaces/${encodeURIComponent(slug)}`;
@@ -141,7 +141,7 @@ export function createClient(opts: ClientOptions) {
   };
 }
 
-export type VeloqClient = ReturnType<typeof createClient>;
+export type KadrixClient = ReturnType<typeof createClient>;
 
 /** Live updates: the URL to open a WebSocket on for a workspace. */
 export function liveUrl(baseUrl: string, slug: string) {

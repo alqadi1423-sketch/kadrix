@@ -33,7 +33,7 @@ jobs:
             type=semver,pattern={{major}}.{{minor}}
             type=raw,value=latest,enable=${{ !contains(github.ref_name, '-') }}
           labels: |
-            org.opencontainers.image.title=Veloq
+            org.opencontainers.image.title=Kadrix
             org.opencontainers.image.description=Open-source project management for tech teams, in Arabic and English
             org.opencontainers.image.licenses=AGPL-3.0-or-later
       - id: push

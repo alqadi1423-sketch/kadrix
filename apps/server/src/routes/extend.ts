@@ -17,7 +17,7 @@ import {
   updateCustomFieldSchema,
   updateIssueTemplateSchema,
   type AutomationAction,
-} from "@veloq/core";
+} from "@kadrix/core";
 import {
   automationRule,
   customField,
@@ -31,7 +31,7 @@ import {
   user,
   workflowState,
   workspaceMember,
-} from "@veloq/db";
+} from "@kadrix/db";
 import { and, asc, desc, eq, inArray, isNull, or, sql } from "drizzle-orm";
 import { Hono } from "hono";
 import { z } from "zod";

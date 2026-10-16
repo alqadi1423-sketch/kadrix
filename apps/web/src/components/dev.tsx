@@ -1,4 +1,4 @@
-import { PR_EVENTS, WEBHOOK_EVENTS } from "@veloq/core";
+import { PR_EVENTS, WEBHOOK_EVENTS } from "@kadrix/core";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
@@ -204,7 +204,7 @@ export function WebhooksSettings({ slug }: { slug: string }) {
                 <code dir="ltr" className="min-w-0 truncate">
                   {h.url}
                 </code>
-                {h.format !== "veloq" && <span className="rounded bg-paper px-1.5 text-xs">{h.format === "slack" ? "Slack" : "Discord"}</span>}
+                {h.format !== "kadrix" && <span className="rounded bg-paper px-1.5 text-xs">{h.format === "slack" ? "Slack" : "Discord"}</span>}
                 <span className={`rounded-full px-2 py-0.5 text-xs ${h.active ? "bg-[#2e8b57]/15" : "border border-line text-muted"}`}>
                   {h.active ? t("webhooks.active") : t("webhooks.paused")}
                 </span>
@@ -251,8 +251,8 @@ export function WebhooksSettings({ slug }: { slug: string }) {
           <div className="flex flex-wrap gap-3">
             <label className="block">
               <span className="mb-1 block text-sm text-muted">{t("webhooks.format")}</span>
-              <Select name="format" defaultValue="veloq" className="py-2">
-                <option value="veloq">JSON</option>
+              <Select name="format" defaultValue="kadrix" className="py-2">
+                <option value="kadrix">JSON</option>
                 <option value="slack">Slack</option>
                 <option value="discord">Discord</option>
               </Select>
@@ -458,8 +458,8 @@ export function AgentsSettings({ slug }: { slug: string }) {
             <p className="text-sm font-medium">{t("agents.tokenOnce")}</p>
             <CopyField label="Token" value={secret} />
             <p className="pt-2 text-sm font-semibold">{t("agents.setup")}</p>
-            <CopyField label={t("agents.setupClaude")} value={`claude mcp add --transport http veloq ${url} --header "Authorization: Bearer ${secret}"`} />
-            <CopyField label={t("agents.setupJson")} value={JSON.stringify({ mcpServers: { veloq: { type: "http", url, headers: { Authorization: `Bearer ${secret}` } } } })} />
+            <CopyField label={t("agents.setupClaude")} value={`claude mcp add --transport http kadrix ${url} --header "Authorization: Bearer ${secret}"`} />
+            <CopyField label={t("agents.setupJson")} value={JSON.stringify({ mcpServers: { kadrix: { type: "http", url, headers: { Authorization: `Bearer ${secret}` } } } })} />
           </OneTimeSecret>
         </div>
       )}

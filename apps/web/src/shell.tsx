@@ -1,4 +1,4 @@
-import { LOCALES, type Locale } from "@veloq/i18n";
+import { LOCALES, type Locale } from "@kadrix/i18n";
 import { Link } from "@tanstack/react-router";
 import type { ReactNode } from "react";
 import { useTranslation } from "react-i18next";

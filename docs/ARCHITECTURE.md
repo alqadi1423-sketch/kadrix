@@ -9,7 +9,7 @@ packages/i18n Arabic and English messages; the type system keeps them in sync.
 ```
 
 ## Request path
-1. `app.ts` resolves the caller: `Authorization: Bearer vlq_…` token, or the session cookie.
+1. `app.ts` resolves the caller: `Authorization: Bearer kdx_…` token, or the session cookie.
 2. `workspaceGuard(action)` loads the membership for `:slug`, checks `can(role, action)`,
    and for guests loads the visible project ids.
 3. Routes call services; queries take the membership as their scope.
@@ -38,13 +38,13 @@ Both are safe to run on several instances.
 | `AUTH_SECRET` | 32+ chars; also derives the key for secrets at rest (required) |
 | `BASE_URL` | Public address |
 | `DATA_DIR` | Where uploads are stored (default `./data`) |
-| `VELOQ_EDITION` | `self-hosted` (default) or `cloud` |
+| `KADRIX_EDITION` | `self-hosted` (default) or `cloud` |
 | `WEBHOOK_ALLOW_PRIVATE` | `1` to allow webhooks to internal addresses |
 | `RATE_LIMIT_PER_MINUTE` | Per user or IP (default 600, `0` disables) |
 | `AUTH_ATTEMPTS_PER_5_MIN` | Sign-in, sign-up and password reset attempts per IP (default 20). `0` turns off auth rate limiting entirely |
 | `AI_PROVIDER` | Off unless set: `openai-compatible` (any server with the OpenAI chat API, including local models) or `anthropic` |
 | `AI_BASE_URL`, `AI_API_KEY`, `AI_MODEL` | Where and which model. `AI_BASE_URL` is required for `openai-compatible` (for example `http://localhost:11434/v1`) |
-| `TRUST_PROXY` | Number of reverse proxies in front of Veloq (default 0). Set to 1 behind one Nginx/Caddy/Cloudflare hop so the real client address is used; never set it higher than the real number, or clients can forge their address |
+| `TRUST_PROXY` | Number of reverse proxies in front of Kadrix (default 0). Set to 1 behind one Nginx/Caddy/Cloudflare hop so the real client address is used; never set it higher than the real number, or clients can forge their address |
 | `SMTP_URL`, `MAIL_FROM` | Enable the email digest |
 
 ## Security notes

@@ -1,5 +1,5 @@
-import { normalizeFieldValue } from "@veloq/core";
-import { customField, issueActivity, issueFieldValue, workspaceMember } from "@veloq/db";
+import { normalizeFieldValue } from "@kadrix/core";
+import { customField, issueActivity, issueFieldValue, workspaceMember } from "@kadrix/db";
 import { and, eq, inArray, isNull, or } from "drizzle-orm";
 import type { Tx } from "../context.js";
 import { invalid } from "../errors.js";

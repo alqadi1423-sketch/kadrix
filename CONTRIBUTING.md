@@ -1,4 +1,4 @@
-# Contributing to Veloq
+# Contributing to Kadrix
 
 Thank you for helping. Contributions in Arabic or English are both welcome.
 

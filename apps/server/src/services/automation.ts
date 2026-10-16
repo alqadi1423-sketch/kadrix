@@ -6,8 +6,8 @@ import {
   type AutomationAction,
   type RuleSubject,
   type updateIssueSchema,
-} from "@veloq/core";
-import { automationRule, issue, issueLabel, workflowState } from "@veloq/db";
+} from "@kadrix/core";
+import { automationRule, issue, issueLabel, workflowState } from "@kadrix/db";
 import { and, eq, isNull, or, sql } from "drizzle-orm";
 import { z } from "zod";
 import { ApiError } from "../errors.js";

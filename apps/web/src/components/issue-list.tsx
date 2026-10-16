@@ -1,4 +1,4 @@
-import { PRIORITY_KEYS } from "@veloq/core";
+import { PRIORITY_KEYS } from "@kadrix/core";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { api, type Issue, type Label, type Member, type State } from "../api";

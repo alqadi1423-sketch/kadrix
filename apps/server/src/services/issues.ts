@@ -1,4 +1,4 @@
-import { CLOSED_CATEGORIES, type AutomationTrigger, type StateCategory, createIssueSchema, updateIssueSchema } from "@veloq/core";
+import { CLOSED_CATEGORIES, type AutomationTrigger, type StateCategory, createIssueSchema, updateIssueSchema } from "@kadrix/core";
 import {
   comment,
   cycle,
@@ -15,7 +15,7 @@ import {
   workflowState,
   workspaceMember,
   type Database,
-} from "@veloq/db";
+} from "@kadrix/db";
 import { and, asc, eq, inArray, sql } from "drizzle-orm";
 import type { z } from "zod";
 import type { Db, Tx } from "../context.js";

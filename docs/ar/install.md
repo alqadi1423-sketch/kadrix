@@ -1,8 +1,8 @@
 <div dir="rtl">
 
-# تثبيت Veloq
+# تثبيت Kadrix
 
-يتكون Veloq من خادم Node.js واحد (الواجهة البرمجية وتطبيق الويب معًا) وقاعدة بيانات PostgreSQL. يمكنك تشغيله عبر Docker أو مباشرة على خادم Linux.
+يتكون Kadrix من خادم Node.js واحد (الواجهة البرمجية وتطبيق الويب معًا) وقاعدة بيانات PostgreSQL. يمكنك تشغيله عبر Docker أو مباشرة على خادم Linux.
 
 **الحد الأدنى:** معالج واحد، وذاكرة 1 جيجابايت، ومساحة 5 جيجابايت، لفريق يصل إلى نحو 50 شخصًا.
 
@@ -19,7 +19,7 @@
 
 ```bash
 git clone https://github.com/alqadi1423-sketch/veloq.git
-cd veloq
+cd kadrix
 cp .env.example .env
 ```
 
@@ -32,7 +32,7 @@ cp .env.example .env
 ```bash
 AUTH_SECRET=$(openssl rand -base64 48)   # الصق الناتج واحفظه سرًا
 POSTGRES_PASSWORD=$(openssl rand -base64 24)
-BASE_URL=https://veloq.example.com       # العنوان الذي سيستخدمه الناس
+BASE_URL=https://kadrix.example.com       # العنوان الذي سيستخدمه الناس
 ```
 
 <div dir="rtl">
@@ -49,7 +49,7 @@ docker compose up -d
 
 افتح العنوان `BASE_URL` (أو http://localhost:3000) وأنشئ الحساب الأول. ترحيلات قاعدة البيانات تعمل تلقائيًا في كل مرة يبدأ فيها الخادم.
 
-بياناتك محفوظة في وحدتي تخزين: `veloq-db` (قاعدة البيانات) و`veloq-data` (الملفات المرفوعة). انسخهما احتياطيًا، وانظر [الترقية والنسخ الاحتياطي](upgrade.md).
+بياناتك محفوظة في وحدتي تخزين: `kadrix-db` (قاعدة البيانات) و`kadrix-data` (الملفات المرفوعة). انسخهما احتياطيًا، وانظر [الترقية والنسخ الاحتياطي](upgrade.md).
 
 ## بدون Docker
 
@@ -65,18 +65,18 @@ docker compose up -d
 
 ```bash
 sudo apt install postgresql
-sudo -u postgres psql -c "CREATE USER veloq WITH PASSWORD 'choose-a-password';"
-sudo -u postgres psql -c "CREATE DATABASE veloq OWNER veloq;"
+sudo -u postgres psql -c "CREATE USER kadrix WITH PASSWORD 'choose-a-password';"
+sudo -u postgres psql -c "CREATE DATABASE kadrix OWNER kadrix;"
 ```
 
 <div dir="rtl">
 
-ينشئ Veloq الامتداد الذي يحتاجه (`pg_trgm`) في أول ترحيل. إن لم يكن لمستخدم قاعدة البيانات صلاحية إنشاء الامتدادات، نفّذ هذا مرة واحدة بصلاحية المشرف:
+ينشئ Kadrix الامتداد الذي يحتاجه (`pg_trgm`) في أول ترحيل. إن لم يكن لمستخدم قاعدة البيانات صلاحية إنشاء الامتدادات، نفّذ هذا مرة واحدة بصلاحية المشرف:
 
 </div>
 
 ```bash
-sudo -u postgres psql -d veloq -c "CREATE EXTENSION IF NOT EXISTS pg_trgm;"
+sudo -u postgres psql -d kadrix -c "CREATE EXTENSION IF NOT EXISTS pg_trgm;"
 ```
 
 <div dir="rtl">
@@ -86,36 +86,36 @@ sudo -u postgres psql -d veloq -c "CREATE EXTENSION IF NOT EXISTS pg_trgm;"
 </div>
 
 ```bash
-sudo useradd --system --create-home --home-dir /opt/veloq veloq
-sudo -u veloq git clone https://github.com/alqadi1423-sketch/veloq.git /opt/veloq/app
-cd /opt/veloq/app
-sudo -u veloq corepack enable --install-directory /opt/veloq/bin
-sudo -u veloq /opt/veloq/bin/pnpm install --frozen-lockfile
-sudo -u veloq /opt/veloq/bin/pnpm build
+sudo useradd --system --create-home --home-dir /opt/kadrix kadrix
+sudo -u kadrix git clone https://github.com/alqadi1423-sketch/veloq.git /opt/kadrix/app
+cd /opt/kadrix/app
+sudo -u kadrix corepack enable --install-directory /opt/kadrix/bin
+sudo -u kadrix /opt/kadrix/bin/pnpm install --frozen-lockfile
+sudo -u kadrix /opt/kadrix/bin/pnpm build
 ```
 
 <div dir="rtl">
 
 ### 3. الإعداد
 
-أنشئ الملف `/opt/veloq/veloq.env` (يقرؤه المستخدم `veloq` فقط):
+أنشئ الملف `/opt/kadrix/kadrix.env` (يقرؤه المستخدم `kadrix` فقط):
 
 </div>
 
 ```bash
-DATABASE_URL=postgres://veloq:choose-a-password@localhost:5432/veloq
+DATABASE_URL=postgres://kadrix:choose-a-password@localhost:5432/kadrix
 AUTH_SECRET=paste-the-output-of-openssl-rand-base64-48
-BASE_URL=https://veloq.example.com
+BASE_URL=https://kadrix.example.com
 PORT=3000
-WEB_DIST=/opt/veloq/app/apps/web/dist
-MIGRATIONS_DIR=/opt/veloq/app/packages/db/migrations
-DATA_DIR=/opt/veloq/data
+WEB_DIST=/opt/kadrix/app/apps/web/dist
+MIGRATIONS_DIR=/opt/kadrix/app/packages/db/migrations
+DATA_DIR=/opt/kadrix/data
 NODE_ENV=production
 ```
 
 ```bash
-sudo chmod 600 /opt/veloq/veloq.env && sudo chown veloq /opt/veloq/veloq.env
-sudo -u veloq mkdir -p /opt/veloq/data
+sudo chmod 600 /opt/kadrix/kadrix.env && sudo chown kadrix /opt/kadrix/kadrix.env
+sudo -u kadrix mkdir -p /opt/kadrix/data
 ```
 
 <div dir="rtl">
@@ -124,24 +124,24 @@ sudo -u veloq mkdir -p /opt/veloq/data
 
 ### 4. التشغيل كخدمة
 
-الملف `/etc/systemd/system/veloq.service`:
+الملف `/etc/systemd/system/kadrix.service`:
 
 </div>
 
 ```ini
 [Unit]
-Description=Veloq
+Description=Kadrix
 After=network.target postgresql.service
 
 [Service]
-User=veloq
-WorkingDirectory=/opt/veloq/app
-EnvironmentFile=/opt/veloq/veloq.env
+User=kadrix
+WorkingDirectory=/opt/kadrix/app
+EnvironmentFile=/opt/kadrix/kadrix.env
 ExecStart=/usr/bin/node apps/server/dist/main.js
 Restart=on-failure
 NoNewPrivileges=true
 ProtectSystem=strict
-ReadWritePaths=/opt/veloq/data
+ReadWritePaths=/opt/kadrix/data
 
 [Install]
 WantedBy=multi-user.target
@@ -149,7 +149,7 @@ WantedBy=multi-user.target
 
 ```bash
 sudo systemctl daemon-reload
-sudo systemctl enable --now veloq
+sudo systemctl enable --now kadrix
 curl http://localhost:3000/api/health
 ```
 
@@ -157,14 +157,14 @@ curl http://localhost:3000/api/health
 
 ## خلف خادم وكيل
 
-ضع Veloq خلف خادم وكيل يتولى HTTPS، واضبط `TRUST_PROXY=1` حتى يرى Veloq العنوان الحقيقي لكل زائر (يُستخدم في حدود الطلبات). يجب تمرير اتصالات WebSocket، فالتحديثات المباشرة والتحرير المشترك يعتمدان عليها.
+ضع Kadrix خلف خادم وكيل يتولى HTTPS، واضبط `TRUST_PROXY=1` حتى يرى Kadrix العنوان الحقيقي لكل زائر (يُستخدم في حدود الطلبات). يجب تمرير اتصالات WebSocket، فالتحديثات المباشرة والتحرير المشترك يعتمدان عليها.
 
 Caddy (يجلب الشهادات تلقائيًا):
 
 </div>
 
 ```
-veloq.example.com {
+kadrix.example.com {
   reverse_proxy localhost:3000
 }
 ```
@@ -178,7 +178,7 @@ Nginx:
 ```nginx
 server {
   listen 443 ssl http2;
-  server_name veloq.example.com;
+  server_name kadrix.example.com;
   # ssl_certificate ...; ssl_certificate_key ...;
   client_max_body_size 30m;
 

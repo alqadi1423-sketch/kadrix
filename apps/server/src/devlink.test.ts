@@ -1,4 +1,4 @@
-import { webhookDelivery } from "@veloq/db";
+import { webhookDelivery } from "@kadrix/db";
 import { createHmac } from "node:crypto";
 import { eq, sql } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
@@ -50,7 +50,7 @@ describe("API tokens", () => {
       scopes: ["read", "write"],
     });
     const token = r.data.token.value;
-    expect(token.startsWith("vlq_")).toBe(true);
+    expect(token.startsWith("kdx_")).toBe(true);
     const created = await bearer(token, "POST", "/workspaces/acme/issues", { projectId: w.pid, title: "From CI" });
     expect(created.status).toBe(201);
     const me = await (await bearer(token, "GET", "/workspaces")).json();
@@ -68,7 +68,7 @@ describe("API tokens", () => {
     expect((await bearer(ro.value, "GET", "/workspaces/other")).status).toBe(404);
     await w.owner.call("DELETE", `/workspaces/acme/tokens/${ro.id}`);
     expect((await bearer(ro.value, "GET", "/workspaces/acme/issues")).status).toBe(401);
-    expect((await bearer("vlq_nonsense", "GET", "/me")).status).toBe(401);
+    expect((await bearer("kdx_nonsense", "GET", "/me")).status).toBe(401);
   });
 });
 
@@ -113,11 +113,11 @@ describe("webhooks", () => {
       return Promise.resolve(new Response("ok"));
     }) as typeof fetch });
     expect(n).toBe(3);
-    const events = t.sent.map((s) => (s.init.headers as Record<string, string>)["x-veloq-event"]);
+    const events = t.sent.map((s) => (s.init.headers as Record<string, string>)["x-kadrix-event"]);
     expect(events.sort()).toEqual(["comment.created", "issue.created", "issue.updated"]);
     for (const s of t.sent) {
       const body = String(s.init.body);
-      const sig = (s.init.headers as Record<string, string>)["x-veloq-signature"];
+      const sig = (s.init.headers as Record<string, string>)["x-kadrix-signature"];
       expect(sig).toBe(`sha256=${createHmac("sha256", hook.secret).update(body).digest("hex")}`);
     }
     const updated = JSON.parse(String(t.sent.find((s) => String(s.init.body).includes("issue.updated"))!.init.body));

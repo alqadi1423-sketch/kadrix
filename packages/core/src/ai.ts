@@ -1,5 +1,5 @@
 /**
- * AI provider interface. Veloq ships with no provider switched on; a
+ * AI provider interface. Kadrix ships with no provider switched on; a
  * self-hosted install can point it at any OpenAI-compatible server (for
  * example a local model) or Anthropic's API. Features that use it are
  * hidden while it is off.

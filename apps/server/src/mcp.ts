@@ -1,5 +1,5 @@
-import { PRIORITY_KEYS, STATE_CATEGORIES, parseDuration } from "@veloq/core";
-import { workspace, type Database } from "@veloq/db";
+import { PRIORITY_KEYS, STATE_CATEGORIES, parseDuration } from "@kadrix/core";
+import { workspace, type Database } from "@kadrix/db";
 import { eq } from "drizzle-orm";
 import type { Context, Hono } from "hono";
 import { z } from "zod";
@@ -7,7 +7,7 @@ import type { Env } from "./context.js";
 
 /**
  * Model Context Protocol server (Streamable HTTP, stateless JSON responses)
- * so AI coding agents can read and update work in Veloq.
+ * so AI coding agents can read and update work in Kadrix.
  *
  * Every tool is a thin call into the public REST API with the caller's own
  * token, so agents get exactly the permissions, guest limits, validation,
@@ -215,8 +215,8 @@ export function mountMcp(app: Hono<Env>, deps: { db: Database; baseUrl: string; 
     if (origin && origin !== new URL(deps.baseUrl).origin) return c.json(rpcError(null, -32600, "Origin not allowed"), 403);
     const wsId = c.get("tokenWorkspaceId");
     if (!c.get("user") || !wsId) {
-      c.header("www-authenticate", 'Bearer realm="veloq"');
-      return c.json(rpcError(null, -32001, "Use an API token: Authorization: Bearer vlq_..."), 401);
+      c.header("www-authenticate", 'Bearer realm="kadrix"');
+      return c.json(rpcError(null, -32001, "Use an API token: Authorization: Bearer kdx_..."), 401);
     }
     const msg = (await c.req.json().catch(() => null)) as RpcRequest | null;
     if (!msg || msg.jsonrpc !== "2.0" || typeof msg.method !== "string") return c.json(rpcError(null, -32700, "Parse error"), 400);
@@ -226,11 +226,11 @@ export function mountMcp(app: Hono<Env>, deps: { db: Database; baseUrl: string; 
     const [ws] = await deps.db.select({ slug: workspace.slug, name: workspace.name }).from(workspace).where(eq(workspace.id, wsId));
     if (!ws) return c.json(rpcError(msg.id, -32001, "Workspace not found"));
     const auth = c.req.header("authorization")!;
-    const locale = c.req.header("x-veloq-locale") ?? "en";
+    const locale = c.req.header("x-kadrix-locale") ?? "en";
     const call: Call = async (method, path, body) => {
       const res = await app.request(`/api${path}`, {
         method,
-        headers: { authorization: auth, "x-veloq-locale": locale, ...(body ? { "content-type": "application/json" } : {}) },
+        headers: { authorization: auth, "x-kadrix-locale": locale, ...(body ? { "content-type": "application/json" } : {}) },
         body: body ? JSON.stringify(body) : undefined,
       });
       return { status: res.status, data: await res.json().catch(() => null) };
@@ -246,7 +246,7 @@ export function mountMcp(app: Hono<Env>, deps: { db: Database; baseUrl: string; 
           result: {
             protocolVersion: MCP_PROTOCOL_VERSIONS.includes(asked) ? asked : MCP_PROTOCOL_VERSIONS[0],
             capabilities: { tools: { listChanged: false } },
-            serverInfo: { name: "veloq", title: "Veloq", version: deps.version },
+            serverInfo: { name: "kadrix", title: "Kadrix", version: deps.version },
             instructions: `Workspace "${ws.name}". Issues are referred to by keys like WEB-12. Use search_issues to find work, get_issue for details, and update_issue to move an issue (get state ids from list_states).${writable ? "" : " This token is read-only."}`,
           },
         });

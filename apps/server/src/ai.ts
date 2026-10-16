@@ -1,4 +1,4 @@
-import type { AiProvider, AiProviderId, AiRequest } from "@veloq/core";
+import type { AiProvider, AiProviderId, AiRequest } from "@kadrix/core";
 
 export interface AiConfig {
   provider: AiProviderId | null;

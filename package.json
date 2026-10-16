@@ -1,5 +1,5 @@
 {
-  "name": "veloq",
+  "name": "kadrix",
   "private": true,
   "description": "Open-source project management for tech teams. Arabic and English, self-hostable.",
   "license": "AGPL-3.0-or-later",
@@ -13,10 +13,10 @@
     "typecheck": "turbo run typecheck",
     "test": "turbo run test",
     "lint": "node scripts/check-rtl.mjs",
-    "e2e": "pnpm --filter @veloq/e2e e2e",
+    "e2e": "pnpm --filter @kadrix/e2e e2e",
     "check": "pnpm lint && pnpm typecheck && pnpm test",
-    "db:generate": "pnpm --filter @veloq/db generate",
-    "db:migrate": "pnpm --filter @veloq/db migrate"
+    "db:generate": "pnpm --filter @kadrix/db generate",
+    "db:migrate": "pnpm --filter @kadrix/db migrate"
   },
   "devDependencies": {
     "turbo": "2.11.8",

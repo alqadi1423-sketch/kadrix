@@ -1,4 +1,4 @@
-import { ISSUE_TYPES, PRIORITY_KEYS, RECURRENCE_FREQ } from "@veloq/core";
+import { ISSUE_TYPES, PRIORITY_KEYS, RECURRENCE_FREQ } from "@kadrix/core";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";

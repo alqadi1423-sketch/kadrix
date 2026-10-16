@@ -1,6 +1,6 @@
 # AI agents and MCP
 
-Veloq has a built-in [Model Context Protocol](https://modelcontextprotocol.io)
+Kadrix has a built-in [Model Context Protocol](https://modelcontextprotocol.io)
 server, so AI coding tools such as Claude Code, Cursor or VS Code can find
 issues, update them, comment and log time, all inside the permissions you
 give them.
@@ -15,15 +15,15 @@ give them.
 Claude Code:
 
 ```bash
-claude mcp add --transport http veloq https://veloq.example.com/api/mcp \
-  --header "Authorization: Bearer vlq_..."
+claude mcp add --transport http kadrix https://kadrix.example.com/api/mcp \
+  --header "Authorization: Bearer kdx_..."
 ```
 
 Other clients (JSON):
 
 ```json
-{ "mcpServers": { "veloq": { "type": "http", "url": "https://veloq.example.com/api/mcp",
-  "headers": { "Authorization": "Bearer vlq_..." } } } }
+{ "mcpServers": { "kadrix": { "type": "http", "url": "https://kadrix.example.com/api/mcp",
+  "headers": { "Authorization": "Bearer kdx_..." } } } }
 ```
 
 ## What agents can do

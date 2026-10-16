@@ -6,8 +6,8 @@ import {
   createWorkspaceSchema,
   updateMemberRoleSchema,
   weekendSchema,
-} from "@veloq/core";
-import { auditLog, project, projectAccess, user, workspace, workspaceMember } from "@veloq/db";
+} from "@kadrix/core";
+import { auditLog, project, projectAccess, user, workspace, workspaceMember } from "@kadrix/db";
 import { and, desc, eq, inArray, sql } from "drizzle-orm";
 import { Hono } from "hono";
 import { z } from "zod";

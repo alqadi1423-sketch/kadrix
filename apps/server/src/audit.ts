@@ -1,4 +1,4 @@
-import { auditLog, type Database } from "@veloq/db";
+import { auditLog, type Database } from "@kadrix/db";
 
 export type AuditAction =
   | "workspace.created"

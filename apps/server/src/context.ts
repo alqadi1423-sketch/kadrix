@@ -1,5 +1,5 @@
-import { can, type Action, type AiProvider, type Edition, type Role } from "@veloq/core";
-import { projectAccess, workspace, workspaceMember, type Database } from "@veloq/db";
+import { can, type Action, type AiProvider, type Edition, type Role } from "@kadrix/core";
+import { projectAccess, workspace, workspaceMember, type Database } from "@kadrix/db";
 import { and, eq } from "drizzle-orm";
 import type { Context, MiddlewareHandler } from "hono";
 import type { z } from "zod";

@@ -1,5 +1,5 @@
 {
-  "name": "@veloq/e2e",
+  "name": "@kadrix/e2e",
   "private": true,
   "type": "module",
   "scripts": {

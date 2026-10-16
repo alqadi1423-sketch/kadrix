@@ -2,7 +2,7 @@
   <img src="apps/web/public/icon.svg" width="72" height="72" alt="">
 </p>
 
-<h1 align="center">Veloq</h1>
+<h1 align="center">Kadrix</h1>
 
 <p align="center">
   Open-source project management for software teams.<br>
@@ -24,7 +24,7 @@
 > **Status:** not released yet. Everything below works and is tested, and the
 > first public version is being prepared. Expect changes until 1.0.
 
-## Why Veloq
+## Why Kadrix
 
 **Two languages, one product.** Every screen works right to left in Arabic and
 left to right in English, with neither treated as a translation. Mixed
@@ -72,7 +72,7 @@ AI features are off until you choose a provider, including a local model.
 
 ```bash
 git clone https://github.com/alqadi1423-sketch/veloq.git
-cd veloq
+cd kadrix
 cp .env.example .env    # set AUTH_SECRET and POSTGRES_PASSWORD
 docker compose up -d
 ```
@@ -86,18 +86,18 @@ Requirements: Node 22, pnpm 10, PostgreSQL 16.
 
 ```bash
 pnpm install
-export DATABASE_URL=postgres://veloq:veloq@localhost:5432/veloq
+export DATABASE_URL=postgres://kadrix:kadrix@localhost:5432/kadrix
 export AUTH_SECRET=$(openssl rand -base64 48)
-pnpm --filter @veloq/server dev     # API on :3000, runs migrations
-pnpm --filter @veloq/web dev        # web app on :5173
+pnpm --filter @kadrix/server dev     # API on :3000, runs migrations
+pnpm --filter @kadrix/web dev        # web app on :5173
 ```
 
 Checks, the same ones CI runs:
 
 ```bash
-export TEST_DATABASE_URL=postgres://veloq:veloq@localhost:5432/veloq_test
+export TEST_DATABASE_URL=postgres://kadrix:kadrix@localhost:5432/kadrix_test
 pnpm check                          # RTL layout check, types, tests
-export E2E_DATABASE_URL=postgres://veloq:veloq@localhost:5432/veloq_e2e
+export E2E_DATABASE_URL=postgres://kadrix:kadrix@localhost:5432/kadrix_e2e
 pnpm build && pnpm e2e              # browser tests on an empty database
 ```
 
@@ -122,7 +122,7 @@ Security issues: please follow [SECURITY.md](SECURITY.md).
 
 ## License
 
-[GNU AGPL v3.0 or later](LICENSE). You can use, change and host Veloq freely;
+[GNU AGPL v3.0 or later](LICENSE). You can use, change and host Kadrix freely;
 if you offer a changed version to others over a network, share your changes
 under the same license. The name and logo are covered by the
 [trademark policy](TRADEMARKS.md).

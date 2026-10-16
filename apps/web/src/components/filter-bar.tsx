@@ -1,4 +1,4 @@
-import { ISSUE_TYPES, PRIORITY_KEYS, type IssueFilter } from "@veloq/core";
+import { ISSUE_TYPES, PRIORITY_KEYS, type IssueFilter } from "@kadrix/core";
 import { useTranslation } from "react-i18next";
 import type { Label, Member } from "../api";
 import { Select } from "../ui";

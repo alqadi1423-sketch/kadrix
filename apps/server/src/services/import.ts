@@ -1,5 +1,5 @@
-import { MAX_AUTOMATION_DEPTH, type ImportSource, type ImportedIssue } from "@veloq/core";
-import { importJob, importRef, issue, label, user, workflowState, workspaceMember, type Database } from "@veloq/db";
+import { MAX_AUTOMATION_DEPTH, type ImportSource, type ImportedIssue } from "@kadrix/core";
+import { importJob, importRef, issue, label, user, workflowState, workspaceMember, type Database } from "@kadrix/db";
 import { and, eq, inArray } from "drizzle-orm";
 import type { EventBus } from "../events.js";
 import { createIssue, updateIssue, type IssueContext } from "./issues.js";
@@ -133,7 +133,7 @@ export async function fetchGitHubIssues(doFetch: typeof fetch, repo: string, tok
     const res = await doFetch(`https://api.github.com/repos/${repo}/issues?state=all&per_page=100&page=${page}`, {
       headers: {
         accept: "application/vnd.github+json",
-        "user-agent": "veloq-import",
+        "user-agent": "kadrix-import",
         "x-github-api-version": "2022-11-28",
         ...(token ? { authorization: `Bearer ${token}` } : {}),
       },

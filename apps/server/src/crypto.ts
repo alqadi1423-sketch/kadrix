@@ -1,8 +1,8 @@
 import { createCipheriv, createDecipheriv, createHash, createHmac, hkdfSync, randomBytes, timingSafeEqual } from "node:crypto";
 
-/** API tokens look like vlq_<40 url-safe chars>. Only their SHA-256 is stored. */
+/** API tokens look like kdx_<40 url-safe chars>. Only their SHA-256 is stored. */
 export function generateToken(): { token: string; hash: string; prefix: string } {
-  const token = `vlq_${randomBytes(30).toString("base64url")}`;
+  const token = `kdx_${randomBytes(30).toString("base64url")}`;
   return { token, hash: hashToken(token), prefix: token.slice(0, 10) };
 }
 
@@ -30,7 +30,7 @@ export function safeEqual(a: string, b: string): boolean {
  * is not enough to forge signatures.
  */
 export function createSealer(authSecret: string) {
-  const key = Buffer.from(hkdfSync("sha256", authSecret, "veloq", "secrets-at-rest-v1", 32));
+  const key = Buffer.from(hkdfSync("sha256", authSecret, "kadrix", "secrets-at-rest-v1", 32));
   return {
     seal(plain: string): string {
       const iv = randomBytes(12);

@@ -1,5 +1,5 @@
-import type { StateCategory } from "@veloq/core";
-import { PRIORITY_KEYS } from "@veloq/core";
+import type { StateCategory } from "@kadrix/core";
+import { PRIORITY_KEYS } from "@kadrix/core";
 import { useTranslation } from "react-i18next";
 
 /** Signal bars; urgent gets a solid amber block so it reads at a glance. */

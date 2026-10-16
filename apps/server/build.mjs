@@ -1,6 +1,6 @@
 import { build } from "esbuild";
 
-// Bundle the server together with the @veloq/* workspace packages into one
+// Bundle the server together with the @kadrix/* workspace packages into one
 // file. Third-party dependencies stay external and are installed in the
 // production image.
 await build({

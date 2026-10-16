@@ -1,4 +1,4 @@
-import type { IssueFilter } from "@veloq/core";
+import type { IssueFilter } from "@kadrix/core";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api, type Issue } from "../api";
 

@@ -11,7 +11,7 @@
 </div>
 
 ```bash
-curl -H "Authorization: Bearer vlq_..." https://veloq.example.com/api/workspaces
+curl -H "Authorization: Bearer kdx_..." https://kadrix.example.com/api/workspaces
 ```
 
 <div dir="rtl">
@@ -20,7 +20,7 @@ curl -H "Authorization: Bearer vlq_..." https://veloq.example.com/api/workspaces
 
 ## اللغة
 
-أرسل `x-veloq-locale: ar` أو `en` للنصوص التي يصنعها الخادم، مثل أسماء الحالات الافتراضية لمشروع جديد. الأخطاء رموز ثابتة مثل `{"error":"notFound"}`، وترجمتها في `errors.*` داخل `packages/i18n`.
+أرسل `x-kadrix-locale: ar` أو `en` للنصوص التي يصنعها الخادم، مثل أسماء الحالات الافتراضية لمشروع جديد. الأخطاء رموز ثابتة مثل `{"error":"notFound"}`، وترجمتها في `errors.*` داخل `packages/i18n`.
 
 ## أمثلة
 
@@ -30,19 +30,19 @@ curl -H "Authorization: Bearer vlq_..." https://veloq.example.com/api/workspaces
 # البحث في المهام بمرشح JSON
 curl -G -H "Authorization: Bearer $T" \
   --data-urlencode 'filter={"search":"تسجيل الدخول","includeClosed":false}' \
-  https://veloq.example.com/api/workspaces/acme/issues
+  https://kadrix.example.com/api/workspaces/acme/issues
 
 # إنشاء مهمة
 curl -X POST -H "Authorization: Bearer $T" -H "content-type: application/json" \
   -d '{"projectId":"…","title":"إصلاح صفحة الدخول","priority":2}' \
-  https://veloq.example.com/api/workspaces/acme/issues
+  https://kadrix.example.com/api/workspaces/acme/issues
 ```
 
 <div dir="rtl">
 
 ## الخطافات البرمجية
 
-يضيف المشرف الخطافات من **الإعدادات ← الخطافات البرمجية**. كل إرسال موقّع بـ HMAC-SHA256 في الترويسة `x-veloq-signature`، ويُعاد عند الفشل بفواصل متزايدة، ويمكن إرساله JSON عاديًا أو منسقًا لـ Slack أو Discord.
+يضيف المشرف الخطافات من **الإعدادات ← الخطافات البرمجية**. كل إرسال موقّع بـ HMAC-SHA256 في الترويسة `x-kadrix-signature`، ويُعاد عند الفشل بفواصل متزايدة، ويمكن إرساله JSON عاديًا أو منسقًا لـ Slack أو Discord.
 
 ## عميل JavaScript
 
@@ -51,7 +51,7 @@ curl -X POST -H "Authorization: Bearer $T" -H "content-type: application/json" \
 </div>
 
 ```ts
-import { createClient } from "@veloq/client";
-const veloq = createClient({ baseUrl: "https://veloq.example.com", token: process.env.VELOQ_TOKEN, locale: "ar" });
-const found = await veloq.issues("acme", { search: "تسجيل الدخول" });
+import { createClient } from "@kadrix/client";
+const kadrix = createClient({ baseUrl: "https://kadrix.example.com", token: process.env.KADRIX_TOKEN, locale: "ar" });
+const found = await kadrix.issues("acme", { search: "تسجيل الدخول" });
 ```

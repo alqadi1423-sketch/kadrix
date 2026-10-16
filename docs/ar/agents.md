@@ -2,7 +2,7 @@
 
 # وكلاء الذكاء الاصطناعي وMCP
 
-في Veloq خادم مدمج لبروتوكول [Model Context Protocol](https://modelcontextprotocol.io)، فتستطيع أدوات البرمجة بالذكاء الاصطناعي مثل Claude Code وCursor وVS Code البحث عن المهام وتعديلها والتعليق وتسجيل الوقت، ضمن الصلاحيات التي تعطيها لها.
+في Kadrix خادم مدمج لبروتوكول [Model Context Protocol](https://modelcontextprotocol.io)، فتستطيع أدوات البرمجة بالذكاء الاصطناعي مثل Claude Code وCursor وVS Code البحث عن المهام وتعديلها والتعليق وتسجيل الوقت، ضمن الصلاحيات التي تعطيها لها.
 
 ## إضافة وكيل
 
@@ -15,8 +15,8 @@ Claude Code:
 </div>
 
 ```bash
-claude mcp add --transport http veloq https://veloq.example.com/api/mcp \
-  --header "Authorization: Bearer vlq_..."
+claude mcp add --transport http kadrix https://kadrix.example.com/api/mcp \
+  --header "Authorization: Bearer kdx_..."
 ```
 
 <div dir="rtl">
@@ -26,8 +26,8 @@ claude mcp add --transport http veloq https://veloq.example.com/api/mcp \
 </div>
 
 ```json
-{ "mcpServers": { "veloq": { "type": "http", "url": "https://veloq.example.com/api/mcp",
-  "headers": { "Authorization": "Bearer vlq_..." } } } }
+{ "mcpServers": { "kadrix": { "type": "http", "url": "https://kadrix.example.com/api/mcp",
+  "headers": { "Authorization": "Bearer kdx_..." } } } }
 ```
 
 <div dir="rtl">

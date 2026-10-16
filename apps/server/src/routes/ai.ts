@@ -1,5 +1,5 @@
-import { fenced, splitDraft } from "@veloq/core";
-import { comment, issue, user } from "@veloq/db";
+import { fenced, splitDraft } from "@kadrix/core";
+import { comment, issue, user } from "@kadrix/db";
 import { and, asc, eq } from "drizzle-orm";
 import { Hono } from "hono";
 import { z } from "zod";
@@ -20,7 +20,7 @@ export function aiRoutes(deps: AppDeps) {
     if (!ai) throw new ApiError(404, "aiDisabled");
     return ai;
   };
-  const langOf = (c: { req: { header: (n: string) => string | undefined } }) => LANG[c.req.header("x-veloq-locale") === "ar" ? "ar" : "en"];
+  const langOf = (c: { req: { header: (n: string) => string | undefined } }) => LANG[c.req.header("x-kadrix-locale") === "ar" ? "ar" : "en"];
   const run = async (p: ReturnType<typeof need>, req: Parameters<typeof p.complete>[0]) => {
     try {
       return (await p.complete(req)).trim();

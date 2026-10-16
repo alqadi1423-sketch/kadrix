@@ -1,4 +1,4 @@
-import { addDays, daysBetween, eachDay, formatDate, isWorkingDay, parseDate } from "@veloq/core";
+import { addDays, daysBetween, eachDay, formatDate, isWorkingDay, parseDate } from "@kadrix/core";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { useRef, useState } from "react";

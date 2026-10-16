@@ -1,4 +1,4 @@
-import { addDays, formatDate } from "@veloq/core";
+import { addDays, formatDate } from "@kadrix/core";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { setupTestApp } from "./test-utils.js";
 
@@ -11,7 +11,7 @@ type State = { id: string; category: string };
 
 async function world() {
   const owner = await t.signUp("Owner");
-  await owner.call("POST", "/workspaces", { name: "Acme", slug: "acme" }, { "x-veloq-locale": "ar" });
+  await owner.call("POST", "/workspaces", { name: "Acme", slug: "acme" }, { "x-kadrix-locale": "ar" });
   const guest = await t.signUp("Guest");
   await owner.call("POST", "/workspaces/acme/members", { email: guest.email, role: "guest" });
   const p = await owner.json<{ project: { id: string } }>("POST", "/workspaces/acme/projects", { name: "Core", key: "COR" });

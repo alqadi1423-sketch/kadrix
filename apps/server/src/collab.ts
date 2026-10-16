@@ -1,6 +1,6 @@
 import { Hocuspocus } from "@hocuspocus/server";
-import { can, type Role } from "@veloq/core";
-import { page, projectAccess, workspace, workspaceMember, type Database } from "@veloq/db";
+import { can, type Role } from "@kadrix/core";
+import { page, projectAccess, workspace, workspaceMember, type Database } from "@kadrix/db";
 import { and, eq } from "drizzle-orm";
 import type { Hono } from "hono";
 import type { UpgradeWebSocket } from "hono/ws";

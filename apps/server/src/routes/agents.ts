@@ -1,4 +1,4 @@
-import { apiToken, projectAccess, project, user, workspaceMember } from "@veloq/db";
+import { apiToken, projectAccess, project, user, workspaceMember } from "@kadrix/db";
 import { and, desc, eq, inArray, isNull } from "drizzle-orm";
 import { Hono } from "hono";
 import { z } from "zod";
@@ -8,7 +8,7 @@ import { generateToken } from "../crypto.js";
 import { ApiError, invalid, notFound } from "../errors.js";
 
 /** Agents get addresses no mail server will ever accept. */
-export const AGENT_EMAIL_DOMAIN = "agents.veloq.invalid";
+export const AGENT_EMAIL_DOMAIN = "agents.kadrix.invalid";
 
 const createAgentSchema = z.object({
   name: z.string().trim().min(1).max(60),

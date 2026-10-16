@@ -15,7 +15,7 @@ import {
   releaseSchema,
   statusUpdateSchema,
   updateIssueSchema,
-} from "@veloq/core";
+} from "@kadrix/core";
 import { z } from "zod";
 
 type Op = {
@@ -104,10 +104,10 @@ export function openApiDocument(baseUrl: string) {
   return {
     openapi: "3.1.0",
     info: {
-      title: "Veloq API",
+      title: "Kadrix API",
       version: "1",
       description:
-        "Authenticate with `Authorization: Bearer vlq_…` (create a token in workspace settings). Tokens are limited to one workspace; read-only tokens can only GET. Errors return `{ error: code }`.",
+        "Authenticate with `Authorization: Bearer kdx_…` (create a token in workspace settings). Tokens are limited to one workspace; read-only tokens can only GET. Errors return `{ error: code }`.",
     },
     servers: [{ url: `${baseUrl}/api` }],
     security: [{ bearer: [] }],

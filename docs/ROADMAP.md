@@ -1,6 +1,6 @@
 # Roadmap
 
-Veloq is built in internal phases. Nothing is announced publicly until all
+Kadrix is built in internal phases. Nothing is announced publicly until all
 phases are done (decision 6 in [DECISIONS.md](DECISIONS.md)).
 
 Status: ✅ done · 🔨 in progress · ⏳ not started
@@ -66,10 +66,10 @@ words with the attached article.
 
 ## 6. Future paths ✅
 Built in, nothing launched. Agent members and an MCP server so AI coding
-tools (Claude Code, Cursor and others) can work in Veloq under their own
+tools (Claude Code, Cursor and others) can work in Kadrix under their own
 name and permissions. AI provider interface (OpenAI-compatible or
 Anthropic) that stays off until an operator sets it, with issue summaries
-and "write it up for me" drafts hidden while off. `@veloq/client`, a typed
+and "write it up for me" drafts hidden while off. `@kadrix/client`, a typed
 client for a future mobile app. Installable PWA with an offline shell.
 Edition features (self-hosted or cloud) exposed by the health endpoint.
 

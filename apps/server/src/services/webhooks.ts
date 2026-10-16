@@ -1,5 +1,5 @@
-import type { WebhookEvent } from "@veloq/core";
-import { webhook, webhookDelivery, workspace, type Database } from "@veloq/db";
+import type { WebhookEvent } from "@kadrix/core";
+import { webhook, webhookDelivery, workspace, type Database } from "@kadrix/db";
 import { and, eq, lte, sql } from "drizzle-orm";
 import type { Db } from "../context.js";
 import { hmacSha256, type Sealer } from "../crypto.js";
@@ -40,7 +40,7 @@ export interface DeliveryOptions {
 /**
  * Sends due deliveries. Rows are claimed with FOR UPDATE SKIP LOCKED so
  * several server instances can run this loop without double-sending.
- * Signature header: X-Veloq-Signature: sha256=<hex HMAC of the raw body>.
+ * Signature header: X-Kadrix-Signature: sha256=<hex HMAC of the raw body>.
  */
 export async function processDeliveries(db: Database, opts: DeliveryOptions): Promise<number> {
   const doFetch = opts.fetchImpl ?? createSafeFetch(opts.allowPrivate);
@@ -92,10 +92,10 @@ export async function processDeliveries(db: Database, opts: DeliveryOptions): Pr
         signal: AbortSignal.timeout(10_000),
         headers: {
           "content-type": "application/json",
-          "user-agent": "Veloq-Webhooks/1",
-          "x-veloq-event": d.event,
-          "x-veloq-delivery": d.id,
-          "x-veloq-signature": `sha256=${hmacSha256(secret, body)}`,
+          "user-agent": "Kadrix-Webhooks/1",
+          "x-kadrix-event": d.event,
+          "x-kadrix-delivery": d.id,
+          "x-kadrix-signature": `sha256=${hmacSha256(secret, body)}`,
         },
         body,
       });

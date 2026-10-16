@@ -1,4 +1,4 @@
-import { apiToken, user, userPreference } from "@veloq/db";
+import { apiToken, user, userPreference } from "@kadrix/db";
 import { and, eq, isNull } from "drizzle-orm";
 import { Hono } from "hono";
 import { bodyLimit } from "hono/body-limit";
@@ -8,7 +8,7 @@ import { z } from "zod";
 import { type AppDeps, type Env, parseBody, requireUser } from "./context.js";
 import { CLIENT_IP_HEADER } from "./auth.js";
 import { hashToken } from "./crypto.js";
-import { editionFeatures } from "@veloq/core";
+import { editionFeatures } from "@kadrix/core";
 import { ApiError, forbidden, unauthorized } from "./errors.js";
 import { openApiDocument } from "./openapi.js";
 import { clientIp, rateLimit } from "./ratelimit.js";

@@ -1,4 +1,4 @@
-import type { ErrorCode } from "@veloq/i18n";
+import type { ErrorCode } from "@kadrix/i18n";
 import type { ContentfulStatusCode } from "hono/utils/http-status";
 
 /**

@@ -1,4 +1,4 @@
-import { AUTOMATION_TRIGGERS, FIELD_KINDS, IMPORT_SOURCES, ISSUE_TYPES, RECURRENCE_FREQ, RELATION_TYPES, ROLES, STATE_CATEGORIES, VIEW_LAYOUTS } from "@veloq/core";
+import { AUTOMATION_TRIGGERS, FIELD_KINDS, IMPORT_SOURCES, ISSUE_TYPES, RECURRENCE_FREQ, RELATION_TYPES, ROLES, STATE_CATEGORIES, VIEW_LAYOUTS } from "@kadrix/core";
 import { sql, type SQL } from "drizzle-orm";
 import {
   boolean,
@@ -552,8 +552,8 @@ export const webhook = pgTable(
     url: text("url").notNull(),
     secret: text("secret").notNull(),
     events: text("events").array().notNull(),
-    /** Payload shape: "veloq" (JSON), "slack" or "discord" (chat message). */
-    format: text("format").notNull().default("veloq"),
+    /** Payload shape: "kadrix" (JSON), "slack" or "discord" (chat message). */
+    format: text("format").notNull().default("kadrix"),
     /** Language for chat messages (Slack/Discord). */
     locale: text("locale").notNull().default("en"),
     active: boolean("active").notNull().default(true),

@@ -25,7 +25,7 @@ export interface EventBus {
   close(): Promise<void>;
 }
 
-const CHANNEL = "veloq_events";
+const CHANNEL = "kadrix_events";
 
 export function createPgEventBus(url: string): EventBus {
   const sql = postgres(url, { max: 2, onnotice: () => {} });

@@ -11,7 +11,7 @@ import {
   velocity,
   workingDaysBetween,
   type BurnIssue,
-} from "@veloq/core";
+} from "@kadrix/core";
 import {
   cycle,
   initiative,
@@ -25,7 +25,7 @@ import {
   user,
   workflowState,
   workspace,
-} from "@veloq/db";
+} from "@kadrix/db";
 import { and, asc, count, desc, eq, gt, inArray, isNotNull, isNull, notInArray, sql } from "drizzle-orm";
 import { Hono } from "hono";
 import { z } from "zod";

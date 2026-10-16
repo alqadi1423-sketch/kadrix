@@ -1,5 +1,5 @@
-import { formatDate, nextOccurrence, type RECURRENCE_FREQ } from "@veloq/core";
-import { issueTemplate, recurrence, workspaceMember, type Database } from "@veloq/db";
+import { formatDate, nextOccurrence, type RECURRENCE_FREQ } from "@kadrix/core";
+import { issueTemplate, recurrence, workspaceMember, type Database } from "@kadrix/db";
 import { and, eq, lte } from "drizzle-orm";
 import type { EventBus } from "../events.js";
 import { createIssue } from "./issues.js";

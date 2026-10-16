@@ -1,4 +1,4 @@
-import { addDays, formatDate } from "@veloq/core";
+import { addDays, formatDate } from "@kadrix/core";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { runRecurrences } from "./services/recurrence.js";
 import { setupTestApp } from "./test-utils.js";

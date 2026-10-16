@@ -1,8 +1,8 @@
-import { directionOf, isLocale, messages, type Locale } from "@veloq/i18n";
+import { directionOf, isLocale, messages, type Locale } from "@kadrix/i18n";
 import i18n from "i18next";
 import { initReactI18next } from "react-i18next";
 
-const STORAGE_KEY = "veloq.locale";
+const STORAGE_KEY = "kadrix.locale";
 
 function initialLocale(): Locale {
   try {

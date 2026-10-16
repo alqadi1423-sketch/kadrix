@@ -1,9 +1,9 @@
 /*
- * Veloq service worker: makes the app installable and lets it open without
+ * Kadrix service worker: makes the app installable and lets it open without
  * a network. Only the app shell is cached. API responses never are, so no
  * workspace data is stored on the device by this worker.
  */
-const SHELL = "veloq-shell-v2";
+const SHELL = "kadrix-shell-v2";
 /** Old build files are dropped beyond this many, oldest first. */
 const MAX_ASSETS = 80;
 

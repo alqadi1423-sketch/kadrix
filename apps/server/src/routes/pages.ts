@@ -1,5 +1,5 @@
-import { buildTsQuery, findIssueKeys, foldSearchText } from "@veloq/core";
-import { issue, page, pageIssue, project, user, type Database } from "@veloq/db";
+import { buildTsQuery, findIssueKeys, foldSearchText } from "@kadrix/core";
+import { issue, page, pageIssue, project, user, type Database } from "@kadrix/db";
 import { and, asc, desc, eq, inArray, isNull, sql } from "drizzle-orm";
 import { Hono } from "hono";
 import { z } from "zod";

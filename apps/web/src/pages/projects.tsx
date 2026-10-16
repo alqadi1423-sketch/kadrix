@@ -1,4 +1,4 @@
-import { can } from "@veloq/core";
+import { can } from "@kadrix/core";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Link, useNavigate, useParams } from "@tanstack/react-router";
 import { useState, type FormEvent } from "react";

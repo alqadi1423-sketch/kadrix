@@ -1,4 +1,4 @@
-import { ISSUE_TYPES, PRIORITY_KEYS } from "@veloq/core";
+import { ISSUE_TYPES, PRIORITY_KEYS } from "@kadrix/core";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
 import { useEffect, useState, type FormEvent } from "react";

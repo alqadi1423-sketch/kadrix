@@ -1,4 +1,4 @@
-import { formatDuration, parseDuration } from "@veloq/core";
+import { formatDuration, parseDuration } from "@kadrix/core";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";

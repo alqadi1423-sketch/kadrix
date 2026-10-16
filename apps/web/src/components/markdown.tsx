@@ -24,5 +24,5 @@ export function Markdown({ text, members = [] }: { text: string; members?: Membe
     const raw = marked.parse(withMentions, { async: false });
     return DOMPurify.sanitize(raw, { ADD_ATTR: ["dir"], FORBID_TAGS: ["style", "form", "input"] });
   }, [text, members]);
-  return <div dir="auto" className="prose-veloq" dangerouslySetInnerHTML={{ __html: html }} />;
+  return <div dir="auto" className="prose-kadrix" dangerouslySetInnerHTML={{ __html: html }} />;
 }

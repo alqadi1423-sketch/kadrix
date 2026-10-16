@@ -1,5 +1,5 @@
 {
-  "name": "@veloq/web",
+  "name": "@kadrix/web",
   "version": "0.0.0",
   "private": true,
   "type": "module",
@@ -24,8 +24,8 @@
     "@tiptap/pm": "3.32.0",
     "@tiptap/react": "3.32.0",
     "@tiptap/starter-kit": "3.32.0",
-    "@veloq/core": "workspace:*",
-    "@veloq/i18n": "workspace:*",
+    "@kadrix/core": "workspace:*",
+    "@kadrix/i18n": "workspace:*",
     "better-auth": "1.7.10",
     "dompurify": "3.4.17",
     "i18next": "26.4.7",

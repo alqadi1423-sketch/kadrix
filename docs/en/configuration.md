@@ -1,15 +1,15 @@
 # Configuration
 
-Veloq reads its settings from environment variables. With Docker, put them in
+Kadrix reads its settings from environment variables. With Docker, put them in
 `.env`; otherwise in the service's environment file.
 
 ## Required
 
 | Variable | Meaning |
 |---|---|
-| `DATABASE_URL` | PostgreSQL connection, e.g. `postgres://veloq:password@localhost:5432/veloq` |
+| `DATABASE_URL` | PostgreSQL connection, e.g. `postgres://kadrix:password@localhost:5432/kadrix` |
 | `AUTH_SECRET` | At least 32 random characters. Signs sessions and encrypts webhook and integration secrets. Changing it signs everyone out and makes stored secrets unreadable. |
-| `BASE_URL` | The public address, e.g. `https://veloq.example.com`. Used for links in emails, webhook URLs and request origin checks. |
+| `BASE_URL` | The public address, e.g. `https://kadrix.example.com`. Used for links in emails, webhook URLs and request origin checks. |
 
 ## Server
 
@@ -19,7 +19,7 @@ Veloq reads its settings from environment variables. With Docker, put them in
 | `DATA_DIR` | `./data` | Folder for uploaded files |
 | `WEB_DIST` | none | Folder of the built web app; the server serves it when set |
 | `MIGRATIONS_DIR` | built in | Folder of database migrations |
-| `TRUST_PROXY` | `0` | Number of reverse proxies in front of Veloq. Set `1` behind one Nginx, Caddy or Cloudflare hop |
+| `TRUST_PROXY` | `0` | Number of reverse proxies in front of Kadrix. Set `1` behind one Nginx, Caddy or Cloudflare hop |
 
 ## Security and limits
 
@@ -39,7 +39,7 @@ phrases are easiest: several unrelated words.
 | Variable | Meaning |
 |---|---|
 | `SMTP_URL` | e.g. `smtps://user:password@smtp.example.com:465`. When set, people get a daily digest of unread notifications in their language (they can turn it off) |
-| `MAIL_FROM` | Sender, e.g. `Veloq <veloq@example.com>` |
+| `MAIL_FROM` | Sender, e.g. `Kadrix <kadrix@example.com>` |
 
 ## AI (off by default)
 
@@ -55,5 +55,5 @@ pages get a **Summarize** button and new issues a **Write it up for me** button.
 
 ## Edition
 
-`VELOQ_EDITION` is `self-hosted` (the default). `cloud` is reserved for a
+`KADRIX_EDITION` is `self-hosted` (the default). `cloud` is reserved for a
 future managed service.

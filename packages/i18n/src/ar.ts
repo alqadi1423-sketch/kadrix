@@ -2,7 +2,7 @@ import type { Messages } from "./en.js";
 
 export const ar: Messages = {
   app: {
-    name: "Veloq",
+    name: "Kadrix",
     tagline: "إدارة المشاريع للفرق التقنية",
   },
   common: {
@@ -349,7 +349,7 @@ export const ar: Messages = {
     url: "رابط الاستقبال",
     format: "صيغة الرسالة",
     events: "الأحداث",
-    secretOnce: "سر التوقيع. انسخه الآن فهو يظهر مرة واحدة فقط. تحقّق به من الترويسة X-Veloq-Signature.",
+    secretOnce: "سر التوقيع. انسخه الآن فهو يظهر مرة واحدة فقط. تحقّق به من الترويسة X-Kadrix-Signature.",
     active: "مفعّل",
     paused: "موقوف",
     failing: "{{count}} إرسال فاشل خلال آخر يوم",
@@ -404,9 +404,9 @@ export const ar: Messages = {
     other: "تغييرات أخرى",
   },
   email: {
-    digestSubject: "Veloq: لديك {{count}} إشعارات غير مقروءة",
+    digestSubject: "Kadrix: لديك {{count}} إشعارات غير مقروءة",
     greeting: "مرحبًا {{name}}، هذا ما حدث أثناء غيابك:",
-    footer: "يصلك هذا الملخص مرة في اليوم على الأكثر. يمكنك إيقافه من تفضيلاتك في Veloq.",
+    footer: "يصلك هذا الملخص مرة في اليوم على الأكثر. يمكنك إيقافه من تفضيلاتك في Kadrix.",
   },
   preferences: {
     title: "تفضيلاتك",
@@ -653,7 +653,7 @@ export const ar: Messages = {
   },
   twoFactor: {
     title: "التحقق بخطوتين",
-    intro: "بعد كلمة المرور يطلب Veloq رمزًا من تطبيق المصادقة في جوالك، فلا تكفي كلمة مرور مسروقة للدخول.",
+    intro: "بعد كلمة المرور يطلب Kadrix رمزًا من تطبيق المصادقة في جوالك، فلا تكفي كلمة مرور مسروقة للدخول.",
     on: "مفعل",
     off: "غير مفعل",
     enable: "تفعيل",

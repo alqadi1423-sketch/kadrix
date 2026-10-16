@@ -1,4 +1,4 @@
-import { issueKey } from "@veloq/core";
+import { issueKey } from "@kadrix/core";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useParams } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";

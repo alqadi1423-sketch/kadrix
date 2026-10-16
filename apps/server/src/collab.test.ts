@@ -1,4 +1,4 @@
-import { notification, page, userPreference } from "@veloq/db";
+import { notification, page, userPreference } from "@kadrix/db";
 import { eq, sql } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import * as Y from "yjs";
@@ -71,8 +71,8 @@ describe("pages", () => {
 describe("chat messages", () => {
   const payload = { event: "issue.created", data: { issue: { key: "WEB-3", title: "Fix login", stateName: "Todo" } } };
   it("formats Slack and Discord bodies with a link, in Arabic or English", () => {
-    const en = chatText(payload, "en", "https://veloq.example", "acme");
-    expect(en).toBe("New issue WEB-3: Fix login\nhttps://veloq.example/w/acme/i/WEB-3");
+    const en = chatText(payload, "en", "https://kadrix.example", "acme");
+    expect(en).toBe("New issue WEB-3: Fix login\nhttps://kadrix.example/w/acme/i/WEB-3");
     expect(chatText(payload, "ar", "https://x", "acme").startsWith("مهمة جديدة WEB-3")).toBe(true);
     expect(chatBody("slack", "hi")).toEqual({ text: "hi" });
     expect(chatBody("discord", "hi")).toEqual({ content: "hi" });
@@ -90,19 +90,19 @@ describe("email digest", () => {
     await t.db.execute(sql`update notification set created_at = now() - interval '2 hours'`);
     const mails: Mail[] = [];
     const send = async (m: Mail) => void mails.push(m);
-    expect(await sendDigests(t.db, send, "https://veloq.example")).toBe(1);
+    expect(await sendDigests(t.db, send, "https://kadrix.example")).toBe(1);
     expect(mails[0]!.to).toBe(member.email);
     expect(mails[0]!.subject).toContain("إشعارات");
     expect(mails[0]!.html).toContain('dir="rtl"');
-    expect(mails[0]!.text).toContain("https://veloq.example/w/acme/i/WEB-1");
+    expect(mails[0]!.text).toContain("https://kadrix.example/w/acme/i/WEB-1");
     // Not again within a day.
-    expect(await sendDigests(t.db, send, "https://veloq.example")).toBe(0);
+    expect(await sendDigests(t.db, send, "https://kadrix.example")).toBe(0);
     // Opted out: never.
     await t.db.update(userPreference).set({ lastDigestAt: new Date(Date.now() - 2 * 864e5), emailDigest: false });
-    expect(await sendDigests(t.db, send, "https://veloq.example")).toBe(0);
+    expect(await sendDigests(t.db, send, "https://kadrix.example")).toBe(0);
     // Read notifications are not sent.
     await t.db.update(userPreference).set({ emailDigest: true });
     await t.db.update(notification).set({ readAt: new Date() });
-    expect(await sendDigests(t.db, send, "https://veloq.example")).toBe(0);
+    expect(await sendDigests(t.db, send, "https://kadrix.example")).toBe(0);
   });
 });

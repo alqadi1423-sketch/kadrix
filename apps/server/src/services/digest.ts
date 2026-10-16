@@ -1,6 +1,6 @@
-import { issueKey } from "@veloq/core";
-import { messages } from "@veloq/i18n";
-import { issue, notification, project, user, userPreference, workspace, type Database } from "@veloq/db";
+import { issueKey } from "@kadrix/core";
+import { messages } from "@kadrix/i18n";
+import { issue, notification, project, user, userPreference, workspace, type Database } from "@kadrix/db";
 import { and, desc, eq, isNull, lt, or, sql } from "drizzle-orm";
 
 export interface Mail {

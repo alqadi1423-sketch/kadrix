@@ -1,5 +1,5 @@
-import type { AutomationAction, AutomationTrigger, Condition, CsvMapping, FieldKind, IssueFilter, IssueType, Role, StateCategory } from "@veloq/core";
-import type { ErrorCode } from "@veloq/i18n";
+import type { AutomationAction, AutomationTrigger, Condition, CsvMapping, FieldKind, IssueFilter, IssueType, Role, StateCategory } from "@kadrix/core";
+import type { ErrorCode } from "@kadrix/i18n";
 import { twoFactorClient } from "better-auth/client/plugins";
 import { createAuthClient } from "better-auth/react";
 import { i18n } from "./i18n";
@@ -19,7 +19,7 @@ export async function call<T>(method: string, path: string, body?: unknown): Pro
     method,
     credentials: "include",
     headers: {
-      "x-veloq-locale": i18n.language,
+      "x-kadrix-locale": i18n.language,
       ...(body && !isForm ? { "content-type": "application/json" } : {}),
     },
     body: isForm ? body : body ? JSON.stringify(body) : undefined,

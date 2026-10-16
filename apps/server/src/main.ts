@@ -1,7 +1,7 @@
 import { serve } from "@hono/node-server";
 import { serveStatic } from "@hono/node-server/serve-static";
 import { createNodeWebSocket } from "@hono/node-ws";
-import { createDb, runMigrations } from "@veloq/db";
+import { createDb, runMigrations } from "@kadrix/db";
 import { Hono } from "hono";
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
@@ -76,6 +76,6 @@ if (config.webDist) {
 }
 
 const server = serve({ fetch: root.fetch, port: config.port }, (info) => {
-  console.log(`Veloq (${config.edition}) listening on http://localhost:${info.port}`);
+  console.log(`Kadrix (${config.edition}) listening on http://localhost:${info.port}`);
 });
 injectWebSocket(server);

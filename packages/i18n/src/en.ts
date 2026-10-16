@@ -2,7 +2,7 @@
 // the `Messages` type) so neither language ever falls behind the other.
 export const en = {
   app: {
-    name: "Veloq",
+    name: "Kadrix",
     tagline: "Project management for tech teams",
   },
   common: {
@@ -349,7 +349,7 @@ export const en = {
     url: "Payload URL",
     format: "Message format",
     events: "Events",
-    secretOnce: "Signing secret. Copy it now; it is shown only once. Verify the X-Veloq-Signature header with it.",
+    secretOnce: "Signing secret. Copy it now; it is shown only once. Verify the X-Kadrix-Signature header with it.",
     active: "Active",
     paused: "Paused",
     failing: "{{count}} failed deliveries in the last day",
@@ -404,9 +404,9 @@ export const en = {
     other: "Other changes",
   },
   email: {
-    digestSubject: "Veloq: {{count}} unread notifications",
+    digestSubject: "Kadrix: {{count}} unread notifications",
     greeting: "Hello {{name}}, here is what happened while you were away:",
-    footer: "You get this summary at most once a day. Turn it off in Veloq under your preferences.",
+    footer: "You get this summary at most once a day. Turn it off in Kadrix under your preferences.",
   },
   preferences: {
     title: "Your preferences",
@@ -653,7 +653,7 @@ export const en = {
   },
   twoFactor: {
     title: "Two-step sign-in",
-    intro: "After your password, Veloq also asks for a code from an authenticator app on your phone, so a stolen password is not enough.",
+    intro: "After your password, Kadrix also asks for a code from an authenticator app on your phone, so a stolen password is not enough.",
     on: "On",
     off: "Off",
     enable: "Turn on",

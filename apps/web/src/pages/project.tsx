@@ -1,4 +1,4 @@
-import { can, type IssueFilter } from "@veloq/core";
+import { can, type IssueFilter } from "@kadrix/core";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useParams } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
@@ -23,7 +23,7 @@ const TABS: Tab[] = ["issues", "cycles", "milestones", "timeline", "calendar", "
 
 /** Remembers the last layout per project in this browser. */
 function useLayoutPref(projectId: string): [Layout, (l: Layout) => void] {
-  const k = `veloq.layout.${projectId}`;
+  const k = `kadrix.layout.${projectId}`;
   const [layout, setLayout] = useState<Layout>(() => {
     try {
       return (localStorage.getItem(k) as Layout) || "list";

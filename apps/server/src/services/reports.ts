@@ -1,5 +1,5 @@
-import { CLOSED_CATEGORIES, addDays, cumulativeFlow, daysBetween, flowTimes, formatDate, percentile, type IsoDate } from "@veloq/core";
-import { issue, issueTransition, timeEntry, user, workflowState, type Database } from "@veloq/db";
+import { CLOSED_CATEGORIES, addDays, cumulativeFlow, daysBetween, flowTimes, formatDate, percentile, type IsoDate } from "@kadrix/core";
+import { issue, issueTransition, timeEntry, user, workflowState, type Database } from "@kadrix/db";
 import { and, eq, gte, inArray, lte, sql, type SQL } from "drizzle-orm";
 import type { Membership } from "../context.js";
 

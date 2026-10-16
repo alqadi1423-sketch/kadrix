@@ -6,7 +6,7 @@
 const COMMON = [
   "password", "passw0rd", "qwerty", "azerty", "letmein", "welcome", "iloveyou", "admin", "monkey",
   "dragon", "football", "baseball", "sunshine", "princess", "trustno1", "abc123", "changeme",
-  "veloq", "secret", "default", "login", "master", "superman", "starwars", "whatever",
+  "kadrix", "secret", "default", "login", "master", "superman", "starwars", "whatever",
   "كلمةالمرور", "كلمةسر", "مرحبا",
 ];
 const ROWS = ["qwertyuiop", "asdfghjkl", "zxcvbnm", "1234567890", "abcdefghijklmnopqrstuvwxyz", "ضصثقفغعهخحجد", "شسيبلاتنمكط"];

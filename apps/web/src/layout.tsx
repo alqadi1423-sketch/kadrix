@@ -1,4 +1,4 @@
-import { can } from "@veloq/core";
+import { can } from "@kadrix/core";
 import { Link, Outlet, useNavigate, useParams } from "@tanstack/react-router";
 import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
