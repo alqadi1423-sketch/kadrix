@@ -24,3 +24,10 @@ layout, and migrations for every schema change.
 
 Every message lives in `packages/i18n/src`. Improving Arabic or English
 wording is a great first contribution.
+
+## Releasing (maintainers)
+
+1. Move the `[Unreleased]` notes in `CHANGELOG.md` under a new `## [x.y.z] - date` heading.
+2. Set the same version in `apps/server/src/version.ts`.
+3. Merge to `main`. The Release workflow tags `vx.y.z`, publishes the image
+   `ghcr.io/<owner>/<repo>:x.y.z` (and `latest`) and writes the GitHub release.
