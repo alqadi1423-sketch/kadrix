@@ -1,3 +1,4 @@
+import { patchOf } from "./schemas.js";
 import { z } from "zod";
 
 /**
@@ -84,9 +85,7 @@ export const createIssueSchema = z.object({
   fields: z.record(z.string().uuid(), z.unknown()).optional(),
 });
 
-export const updateIssueSchema = createIssueSchema
-  .omit({ projectId: true })
-  .partial()
+export const updateIssueSchema = patchOf(createIssueSchema.omit({ projectId: true }))
   .extend({ sortOrder: z.number().optional() });
 
 export const commentSchema = z.object({ body: z.string().trim().min(1).max(50_000) });

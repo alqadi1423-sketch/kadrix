@@ -34,6 +34,7 @@ const ADMIN: Action[] = [
   "field.manage",
   "automation.manage",
   "import.run",
+  "agent.manage",
 ];
 const EXPECTED: Record<Role, Action[]> = {
   owner: [...ACTIONS],

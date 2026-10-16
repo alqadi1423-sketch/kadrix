@@ -9,6 +9,7 @@ import { createApp } from "./app.js";
 import { createSealer } from "./crypto.js";
 import { createMailer, startDigestWorker } from "./services/digest.js";
 import { startDeliveryWorker } from "./services/webhooks.js";
+import { createAiProvider } from "./ai.js";
 import { createAuth } from "./auth.js";
 import { loadConfig } from "./config.js";
 import { createPgEventBus } from "./events.js";
@@ -51,6 +52,7 @@ root.route(
     rateLimitPerMinute: config.rateLimitPerMinute,
     authAttemptsPer5Min: config.authAttemptsPer5Min,
     trustProxy: config.trustProxy,
+    ai: createAiProvider(config.ai),
   }),
 );
 

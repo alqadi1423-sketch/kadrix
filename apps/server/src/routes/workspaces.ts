@@ -87,6 +87,7 @@ export function workspaceRoutes({ db }: AppDeps) {
         userId: user.id,
         name: user.name,
         email: user.email,
+        kind: user.kind,
         role: workspaceMember.role,
         projectIds: sql<string[] | null>`case when ${workspaceMember.role} = 'guest' then coalesce((select array_agg(pa.project_id) from ${projectAccess} pa join ${project} p on p.id = pa.project_id where pa.user_id = ${user.id} and p.workspace_id = ${m.workspaceId}), '{}') end`,
       })

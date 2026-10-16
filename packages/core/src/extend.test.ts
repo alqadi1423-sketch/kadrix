@@ -165,3 +165,14 @@ describe("buildTsQuery", () => {
     expect(buildTsQuery("&&&")).toBeNull();
   });
 });
+
+describe("patch schemas never fill in defaults", () => {
+  it("leaves unsent fields out", async () => {
+    const { updateIssueSchema } = await import("./work.js");
+    const { updateAutomationRuleSchema, updateIssueTemplateSchema, updateCustomFieldSchema } = await import("./extend.js");
+    expect(updateIssueSchema.parse({ title: "x" })).toEqual({ title: "x" });
+    expect(updateAutomationRuleSchema.parse({ name: "x" })).toEqual({ name: "x" });
+    expect(updateIssueTemplateSchema.parse({ name: "x" })).toEqual({ name: "x" });
+    expect(updateCustomFieldSchema.parse({ name: "x" })).toEqual({ name: "x" });
+  });
+});

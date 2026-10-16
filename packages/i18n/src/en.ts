@@ -456,6 +456,8 @@ export const en = {
       "automation.created": "{{actor}} created the rule {{target}}",
       "automation.deleted": "{{actor}} deleted the rule {{target}}",
       "import.completed": "{{actor}} imported issues into {{target}}",
+      "agent.created": "{{actor}} added the agent {{target}}",
+      "agent.deleted": "{{actor}} removed the agent {{target}}",
     },
   },
   fields: {
@@ -623,6 +625,8 @@ export const en = {
     },
   },
   errors: {
+    aiDisabled: "AI features are not switched on for this server.",
+    aiFailed: "The AI service did not answer. Try again later.",
     importFailed: "Could not read from the other service. Check the address and token.",
     unauthorized: "Please sign in.",
     forbidden: "You do not have permission to do this.",

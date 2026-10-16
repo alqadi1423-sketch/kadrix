@@ -19,7 +19,9 @@ export type AuditAction =
   | "field.deleted"
   | "automation.created"
   | "automation.deleted"
-  | "import.completed";
+  | "import.completed"
+  | "agent.created"
+  | "agent.deleted";
 
 type Tx = Parameters<Parameters<Database["transaction"]>[0]>[0];
 

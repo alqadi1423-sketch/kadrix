@@ -187,6 +187,14 @@ describe("issues", () => {
     expect((await list(w.owner, { priority: [2] })).length).toBe(2);
   });
 
+  it("keeps fields the caller did not send", async () => {
+    const w = await world();
+    const i = await newIssue(w.owner, w.projectId, { priority: 2, type: "bug" });
+    await w.owner.call("PATCH", `/workspaces/acme/issues/${i.id}`, { title: "Renamed" });
+    const after = await w.owner.json<{ issue: { priority: number; type: string } }>("GET", `/workspaces/acme/issues/${i.id}`);
+    expect(after.data.issue).toMatchObject({ priority: 2, type: "bug" });
+  });
+
   it("changes nothing when one issue in a bulk update fails", async () => {
     const w = await world();
     const a = await newIssue(w.owner, w.projectId);

@@ -40,6 +40,10 @@ export function createAuth(db: Database, opts: AuthOptions) {
     hooks: {
       before: createAuthMiddleware(async (ctx) => {
         const body = (ctx.body ?? {}) as Record<string, unknown>;
+        // Agent accounts never sign in or reset a password; they use tokens.
+        if (typeof body.email === "string" && body.email.toLowerCase().endsWith("@agents.veloq.invalid")) {
+          throw new APIError("FORBIDDEN", { message: "Agents sign in with API tokens", code: "AGENT_ACCOUNT" });
+        }
         const pw = ctx.path === "/sign-up/email" || ctx.path === "/reset-password" ? body.password ?? body.newPassword : ctx.path === "/change-password" ? body.newPassword : undefined;
         if (typeof pw !== "string") return;
         const problem = passwordProblem(pw, [String(body.email ?? ""), String(body.name ?? "")]);

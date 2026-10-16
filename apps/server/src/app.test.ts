@@ -133,3 +133,13 @@ describe("audit log", () => {
     expect(rows.length).toBe(0);
   });
 });
+
+describe("AI is off by default", () => {
+  it("reports disabled and hides the endpoints", async () => {
+    const owner = await setupWorkspace();
+    expect((await owner.json<{ enabled: boolean }>("GET", "/ai")).data.enabled).toBe(false);
+    const r = await owner.call("POST", "/workspaces/acme/ai/draft-issue", { text: "something broke" });
+    expect(r.status).toBe(404);
+    expect(await r.json()).toEqual({ error: "aiDisabled" });
+  });
+});

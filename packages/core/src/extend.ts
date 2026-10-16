@@ -1,3 +1,4 @@
+import { patchOf } from "./schemas.js";
 import { z } from "zod";
 import { ISSUE_TYPES, STATE_CATEGORIES, type StateCategory } from "./work.js";
 import { addDays, formatDate, parseDate, type IsoDate } from "./planning.js";
@@ -20,7 +21,7 @@ export const customFieldSchema = z.object({
   projectId: z.string().uuid().nullable().default(null),
   options: z.array(optionSchema).max(100).default([]),
 });
-export const updateCustomFieldSchema = customFieldSchema.omit({ kind: true, projectId: true }).partial().extend({
+export const updateCustomFieldSchema = patchOf(customFieldSchema.omit({ kind: true, projectId: true })).extend({
   position: z.number().optional(),
 });
 
@@ -76,7 +77,7 @@ export const issueTemplateSchema = z.object({
   labelIds: z.array(z.string().uuid()).max(50).default([]),
   fields: z.record(z.string(), z.unknown()).default({}),
 });
-export const updateIssueTemplateSchema = issueTemplateSchema.omit({ projectId: true }).partial();
+export const updateIssueTemplateSchema = patchOf(issueTemplateSchema.omit({ projectId: true }));
 
 /* --------------------------- recurrence --------------------------- */
 
@@ -180,7 +181,7 @@ export const automationRuleSchema = z.object({
   actions: z.array(actionSchema).min(1).max(10),
   active: z.boolean().default(true),
 });
-export const updateAutomationRuleSchema = automationRuleSchema.omit({ projectId: true }).partial();
+export const updateAutomationRuleSchema = patchOf(automationRuleSchema.omit({ projectId: true }));
 export type Condition = z.infer<typeof conditionSchema>;
 
 /** The parts of an issue rules can look at. */

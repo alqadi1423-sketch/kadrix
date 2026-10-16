@@ -1,4 +1,5 @@
 import { parseEdition, type Edition } from "@veloq/core";
+import type { AiConfig } from "./ai.js";
 
 export interface Config {
   databaseUrl: string;
@@ -15,6 +16,7 @@ export interface Config {
   authAttemptsPer5Min: number;
   trustProxy: number;
   smtpUrl: string | null;
+  ai: AiConfig;
   mailFrom: string;
 }
 
@@ -38,6 +40,12 @@ export function loadConfig(env = process.env): Config {
     authAttemptsPer5Min: Number(env.AUTH_ATTEMPTS_PER_5_MIN ?? 20),
     trustProxy: Number(env.TRUST_PROXY ?? 0),
     smtpUrl: env.SMTP_URL || null,
+    ai: {
+      provider: env.AI_PROVIDER === "anthropic" || env.AI_PROVIDER === "openai-compatible" ? env.AI_PROVIDER : null,
+      baseUrl: env.AI_BASE_URL || null,
+      apiKey: env.AI_API_KEY || null,
+      model: env.AI_MODEL || null,
+    },
     mailFrom: env.MAIL_FROM ?? "Veloq <no-reply@localhost>",
   };
 }

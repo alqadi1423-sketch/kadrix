@@ -40,6 +40,10 @@ export const user = pgTable("user", {
   email: text("email").notNull().unique(),
   emailVerified: boolean("email_verified").notNull().default(false),
   image: text("image"),
+  /** "agent" for AI coding agents and bots: no password, act only through API tokens. */
+  kind: text("kind").notNull().default("human"),
+  /** Agents belong to one workspace and are removed with it. */
+  agentWorkspaceId: uuid("agent_workspace_id").references((): AnyPgColumn => workspace.id, { onDelete: "cascade" }),
   createdAt: createdAt(),
   updatedAt: updatedAt(),
 });

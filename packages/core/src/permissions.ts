@@ -36,6 +36,7 @@ export const ACTIONS = [
   "import.run",
   "time.log",
   "report.read",
+  "agent.manage",
 ] as const;
 export type Action = (typeof ACTIONS)[number];
 
@@ -72,6 +73,7 @@ const ADMIN: readonly Action[] = [
   "field.manage",
   "automation.manage",
   "import.run",
+  "agent.manage",
 ];
 
 const MATRIX: Record<Role, readonly Action[]> = {

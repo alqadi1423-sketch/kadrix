@@ -1,4 +1,4 @@
-import { can, type Action, type Edition, type Role } from "@veloq/core";
+import { can, type Action, type AiProvider, type Edition, type Role } from "@veloq/core";
 import { projectAccess, workspace, workspaceMember, type Database } from "@veloq/db";
 import { and, eq } from "drizzle-orm";
 import type { Context, MiddlewareHandler } from "hono";
@@ -50,6 +50,8 @@ export interface AppDeps {
   webhookFetch?: typeof fetch;
   /** Override for calls to other tools' APIs when importing (tests). */
   importFetch?: typeof fetch;
+  /** AI provider, or null/undefined while none is switched on. */
+  ai?: AiProvider | null;
 }
 
 export function requireUser(c: Context<Env>): SessionUser {

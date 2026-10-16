@@ -456,6 +456,8 @@ export const ar: Messages = {
       "automation.created": "أنشأ {{actor}} القاعدة {{target}}",
       "automation.deleted": "حذف {{actor}} القاعدة {{target}}",
       "import.completed": "استورد {{actor}} مهامًا إلى {{target}}",
+      "agent.created": "أضاف {{actor}} الوكيل {{target}}",
+      "agent.deleted": "أزال {{actor}} الوكيل {{target}}",
     },
   },
   fields: {
@@ -623,6 +625,8 @@ export const ar: Messages = {
     },
   },
   errors: {
+    aiDisabled: "ميزات الذكاء الاصطناعي غير مفعلة في هذا الخادم.",
+    aiFailed: "لم تستجب خدمة الذكاء الاصطناعي. حاول لاحقًا.",
     importFailed: "تعذرت القراءة من الخدمة الأخرى. تحقق من العنوان ورمز الوصول.",
     unauthorized: "يرجى تسجيل الدخول.",
     forbidden: "ليست لديك صلاحية لهذا الإجراء.",

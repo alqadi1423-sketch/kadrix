@@ -57,6 +57,13 @@
       "when": 1792170072054,
       "tag": "0007_extensions",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1792170739174,
+      "tag": "0008_agents",
+      "breakpoints": true
     }
   ]
 }
