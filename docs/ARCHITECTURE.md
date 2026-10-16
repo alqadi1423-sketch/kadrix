@@ -42,6 +42,8 @@ Both are safe to run on several instances.
 | `WEBHOOK_ALLOW_PRIVATE` | `1` to allow webhooks to internal addresses |
 | `RATE_LIMIT_PER_MINUTE` | Per user or IP (default 600, `0` disables) |
 | `AUTH_ATTEMPTS_PER_5_MIN` | Sign-in, sign-up and password reset attempts per IP (default 20). `0` turns off auth rate limiting entirely |
+| `AI_PROVIDER` | Off unless set: `openai-compatible` (any server with the OpenAI chat API, including local models) or `anthropic` |
+| `AI_BASE_URL`, `AI_API_KEY`, `AI_MODEL` | Where and which model. `AI_BASE_URL` is required for `openai-compatible` (for example `http://localhost:11434/v1`) |
 | `TRUST_PROXY` | Number of reverse proxies in front of Veloq (default 0). Set to 1 behind one Nginx/Caddy/Cloudflare hop so the real client address is used; never set it higher than the real number, or clients can forge their address |
 | `SMTP_URL`, `MAIL_FROM` | Enable the email digest |
 
@@ -50,3 +52,13 @@ Both are safe to run on several instances.
 - Passwords follow NIST SP 800-63B-4 for single-factor accounts: 15 to 128 characters, any language, no composition rules, and common or account-derived passwords are refused (`apps/server/src/password.ts`).
 - Rate limits are kept in memory, which suits one instance. Running several instances needs a shared store first (planned with the cloud edition).
 - Bulk issue edits run in one transaction and lock rows in id order.
+
+## Agents and MCP
+
+- Agents are workspace members of kind `agent`. They have no password and act only through their API token, so every rule that applies to tokens applies to them. Removing an agent revokes its tokens and membership but keeps the user row, so history still shows its name.
+- `POST /api/mcp` is a Model Context Protocol server (Streamable HTTP, stateless JSON responses). Every tool calls the public REST API with the caller's token, so an agent can never do more than the same token could through the API. Read-only tokens only see read tools. Requests with a foreign `Origin` are refused.
+
+## Mobile and other clients
+
+- `packages/client` is a typed API client that needs only `fetch`, for the future mobile app, scripts and integrations.
+- The web app is installable (manifest and service worker). The service worker caches the app shell only, never API responses.

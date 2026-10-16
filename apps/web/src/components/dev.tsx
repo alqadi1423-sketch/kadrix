@@ -10,7 +10,7 @@ function useFmt() {
   return new Intl.DateTimeFormat(i18n.language, { dateStyle: "medium", timeStyle: "short" });
 }
 
-function CopyField({ label, value }: { label: string; value: string }) {
+export function CopyField({ label, value }: { label: string; value: string }) {
   const { t } = useTranslation();
   const [done, setDone] = useState(false);
   return (
@@ -37,7 +37,7 @@ function CopyField({ label, value }: { label: string; value: string }) {
 }
 
 /** Shown once after creating a token, webhook or integration. */
-function OneTimeSecret({ children }: { children: ReactNode }) {
+export function OneTimeSecret({ children }: { children: ReactNode }) {
   return <div className="space-y-3 rounded-[var(--radius-panel)] border-2 border-signal/60 bg-signal/10 p-4">{children}</div>;
 }
 
@@ -423,5 +423,96 @@ function MappingEditor({ slug, integration, onSaved }: { slug: string; integrati
       </div>
       <ErrorText error={save.error} />
     </details>
+  );
+}
+
+/* --------------------------------- agents --------------------------------- */
+
+export function AgentsSettings({ slug }: { slug: string }) {
+  const { t, i18n } = useTranslation();
+  const qc = useQueryClient();
+  const agents = useQuery({ queryKey: ["ws", slug, "agents"], queryFn: () => api.agents(slug), select: (d) => d.agents });
+  const [secret, setSecret] = useState<string | null>(null);
+  const refresh = () => {
+    void qc.invalidateQueries({ queryKey: ["ws", slug, "agents"] });
+    void qc.invalidateQueries({ queryKey: ["ws", slug, "members"] });
+  };
+  const create = useMutation({
+    mutationFn: (input: { name: string; write: boolean }) => api.createAgent(slug, { ...input, role: "member" }),
+    onSuccess: (r) => {
+      setSecret(r.token);
+      refresh();
+    },
+  });
+  const rotate = useMutation({ mutationFn: (a: { id: string; canWrite: boolean }) => api.rotateAgentToken(slug, a.id, a.canWrite), onSuccess: (r) => setSecret(r.token) });
+  const remove = useMutation({ mutationFn: (id: string) => api.removeAgent(slug, id), onSuccess: refresh });
+  const fmt = new Intl.DateTimeFormat(i18n.language, { dateStyle: "medium", timeStyle: "short" });
+  const url = `${location.origin}/api/mcp`;
+
+  return (
+    <Panel title={t("agents.title")}>
+      <p className="mb-4 text-sm text-muted">{t("agents.intro")}</p>
+      {secret && (
+        <div className="mb-6">
+          <OneTimeSecret>
+            <p className="text-sm font-medium">{t("agents.tokenOnce")}</p>
+            <CopyField label="Token" value={secret} />
+            <p className="pt-2 text-sm font-semibold">{t("agents.setup")}</p>
+            <CopyField label={t("agents.setupClaude")} value={`claude mcp add --transport http veloq ${url} --header "Authorization: Bearer ${secret}"`} />
+            <CopyField label={t("agents.setupJson")} value={JSON.stringify({ mcpServers: { veloq: { type: "http", url, headers: { Authorization: `Bearer ${secret}` } } } })} />
+          </OneTimeSecret>
+        </div>
+      )}
+      {agents.data?.length ? (
+        <ul className="mb-6 divide-y divide-line">
+          {agents.data.map((a) => (
+            <li key={a.id} className="flex flex-wrap items-center gap-3 py-2.5">
+              <span className="rounded bg-petrol/10 px-1.5 text-xs text-petrol">{t("agents.badge")}</span>
+              <span className="font-medium" dir="auto">
+                {a.name}
+              </span>
+              <span className="text-xs text-muted">{a.canWrite ? t("agents.canWrite") : t("agents.readOnly")}</span>
+              {a.tokenPrefix && (
+                <code dir="ltr" className="text-xs text-muted">
+                  {a.tokenPrefix}…
+                </code>
+              )}
+              <span className="text-xs text-muted">{a.lastUsedAt ? t("agents.lastUsed", { date: fmt.format(new Date(a.lastUsedAt)) }) : t("agents.never")}</span>
+              <span className="ms-auto flex gap-1">
+                <Button variant="quiet" onClick={() => rotate.mutate(a)}>
+                  {t("agents.rotate")}
+                </Button>
+                <Button variant="danger" onClick={() => window.confirm(t("common.confirmDelete")) && remove.mutate(a.id)}>
+                  {t("agents.remove")}
+                </Button>
+              </span>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p className="mb-6 text-sm text-muted">{t("agents.empty")}</p>
+      )}
+      <form
+        className="flex flex-wrap items-end gap-3"
+        onSubmit={(e) => {
+          e.preventDefault();
+          const form = e.currentTarget;
+          const f = new FormData(form);
+          create.mutate({ name: String(f.get("name")), write: f.get("write") === "on" }, { onSuccess: () => form.reset() });
+        }}
+      >
+        <div className="min-w-48 flex-1">
+          <Field label={t("agents.name")} name="name" required maxLength={60} placeholder="Claude Code" dir="auto" />
+        </div>
+        <label className="flex items-center gap-2 pb-2 text-sm">
+          <input type="checkbox" name="write" defaultChecked className="accent-petrol" />
+          {t("agents.canWrite")}
+        </label>
+        <Button type="submit" disabled={create.isPending}>
+          {t("agents.add")}
+        </Button>
+        <ErrorText error={create.error ?? rotate.error} />
+      </form>
+    </Panel>
   );
 }

@@ -5,6 +5,7 @@ import { useTranslation } from "react-i18next";
 import { api, type CustomField, type Member } from "../api";
 import { keys, useMe } from "../lib/hooks";
 import { Button, ErrorText, Select } from "../ui";
+import { Markdown } from "./markdown";
 
 export const fieldKeys = {
   fields: (slug: string, projectId?: string) => ["ws", slug, "field", projectId ?? "all"] as const,
@@ -236,6 +237,33 @@ export function TimeSection({ slug, issueId, canLog, canModerate }: { slug: stri
           ))}
         </ul>
       )}
+    </section>
+  );
+}
+
+export const useAi = () => useQuery({ queryKey: ["ai"], queryFn: api.ai, staleTime: Infinity, select: (d) => d.enabled });
+
+/** Shown only when the server has an AI provider switched on. */
+export function AiSummary({ slug, issueId }: { slug: string; issueId: string }) {
+  const { t } = useTranslation();
+  const enabled = useAi();
+  const run = useMutation({ mutationFn: () => api.aiSummary(slug, issueId) });
+  if (!enabled.data) return null;
+  return (
+    <section className="space-y-2">
+      <div className="flex items-center gap-3">
+        <h2 className="text-sm font-semibold">{t("ai.summary")}</h2>
+        <Button variant="quiet" onClick={() => run.mutate()} disabled={run.isPending}>
+          {run.isPending ? t("ai.summarizing") : t("ai.summarize")}
+        </Button>
+      </div>
+      {run.data && (
+        <div className="rounded-[var(--radius-panel)] border border-line bg-paper p-3 text-sm">
+          <Markdown text={run.data.summary} members={[]} />
+          <p className="mt-2 text-xs text-muted">{t("ai.note")}</p>
+        </div>
+      )}
+      <ErrorText error={run.error} />
     </section>
   );
 }

@@ -8,6 +8,7 @@ import { useMembers, useProjects } from "../lib/hooks";
 import { Button, Dialog, ErrorText, Select } from "../ui";
 import { MentionTextarea } from "./mention-input";
 import { useTemplates } from "./templates";
+import { useAi } from "./extend";
 
 export function NewIssueDialog({
   slug,
@@ -47,6 +48,14 @@ export function NewIssueDialog({
   }, [open, defaults.projectId, projects.data]);
 
   const template = templates.data?.find((x) => x.id === templateId);
+  const ai = useAi();
+  const draft = useMutation({
+    mutationFn: () => api.aiDraft(slug, [title, description].filter(Boolean).join("\n\n")),
+    onSuccess: ({ draft: d }) => {
+      setTitle(d.title);
+      setDescription(d.description);
+    },
+  });
   function applyTemplate(id: string) {
     setTemplateId(id);
     const tp = templates.data?.find((x) => x.id === id);
@@ -150,8 +159,13 @@ export function NewIssueDialog({
             ))}
           </Select>
         </div>
-        <ErrorText error={create.error} />
+        <ErrorText error={create.error ?? draft.error} />
         <div className="flex justify-end gap-2">
+          {ai.data && (
+            <Button type="button" variant="quiet" className="me-auto" disabled={draft.isPending || (title + description).trim().length < 3} onClick={() => draft.mutate()}>
+              {draft.isPending ? t("ai.drafting") : t("ai.draft")}
+            </Button>
+          )}
           <Button type="button" variant="quiet" onClick={onClose}>
             {t("common.cancel")}
           </Button>

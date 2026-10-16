@@ -5,7 +5,7 @@ import { useEffect, useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { api, type Issue, type Member, type Relation } from "../api";
 import { DevSection } from "../components/dev";
-import { IssueFields, TimeSection, useFields } from "../components/extend";
+import { AiSummary, IssueFields, TimeSection, useFields } from "../components/extend";
 import { Avatar, LabelChip, StateIcon } from "../components/icons";
 import { IssueRow } from "../components/issue-row";
 import { Markdown } from "../components/markdown";
@@ -76,6 +76,7 @@ function IssueDetail({ slug, id }: { slug: string; id: string }) {
           members={m}
           onSave={(description) => set({ description })}
         />
+        <AiSummary slug={slug} issueId={id} />
         <SubIssues slug={slug} issue={issue} children={detail.data.children} labels={labels.data ?? []} onAdd={() => ui.newIssue({ projectId: issue.projectId, parentId: issue.id })} editable={editable} />
         <Relations slug={slug} issue={issue} relations={detail.data.relations} related={detail.data.related} editable={editable} />
         <DevSection slug={slug} issueId={id} issueKey={issue.key} />

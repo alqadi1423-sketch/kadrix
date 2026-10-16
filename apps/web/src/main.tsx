@@ -20,7 +20,7 @@ import { SettingsPage } from "./pages/settings";
 import { ViewsPage, WorkspaceCalendar } from "./pages/views";
 import { WorkspacesPage } from "./pages/workspaces";
 import { Shell } from "./shell";
-import { IntegrationsSettings, TokensSettings, WebhooksSettings } from "./components/dev";
+import { AgentsSettings, IntegrationsSettings, TokensSettings, WebhooksSettings } from "./components/dev";
 import { AutomationSettings, FieldsSettings, ImportSettings } from "./components/settings-extend";
 import { can } from "@veloq/core";
 
@@ -34,6 +34,7 @@ function Settings() {
         { id: "import", label: t("importer.title"), show: (r) => can(r, "import.run"), render: (s) => <ImportSettings slug={s} /> },
         { id: "integrations", label: t("integrations.title"), show: (r) => can(r, "integration.manage"), render: (s) => <IntegrationsSettings slug={s} /> },
         { id: "webhooks", label: t("webhooks.title"), show: (r) => can(r, "webhook.manage"), render: (s) => <WebhooksSettings slug={s} /> },
+        { id: "agents", label: t("agents.title"), show: (r) => can(r, "agent.manage"), render: (s) => <AgentsSettings slug={s} /> },
         { id: "tokens", label: t("tokens.title"), show: (r) => can(r, "token.manage"), render: (s) => <TokensSettings slug={s} /> },
       ]}
     />
@@ -94,3 +95,8 @@ createRoot(document.getElementById("root")!).render(
     </QueryClientProvider>
   </StrictMode>,
 );
+
+// Installable app with an offline shell (production builds only).
+if (import.meta.env.PROD && "serviceWorker" in navigator) {
+  window.addEventListener("load", () => void navigator.serviceWorker.register("/sw.js").catch(() => {}));
+}

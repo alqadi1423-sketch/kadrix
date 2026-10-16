@@ -90,7 +90,10 @@ function Members({ slug, myRole }: { slug: string; myRole: Role }) {
             <li key={m.userId} className="flex flex-wrap items-center gap-3 py-3">
               <Avatar name={m.name} size={32} />
               <div className="min-w-0 flex-1">
-                <div className="font-medium">{m.name}</div>
+                <div className="flex items-center gap-2 font-medium">
+                  {m.name}
+                  {m.kind === "agent" && <span className="rounded bg-petrol/10 px-1.5 text-xs font-normal text-petrol">{t("agents.badge")}</span>}
+                </div>
                 <div className="text-sm text-muted" dir="ltr">
                   {m.email}
                 </div>

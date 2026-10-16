@@ -60,6 +60,15 @@ root.route(
 if (config.webDist) {
   const dist = config.webDist;
   const indexHtml = await readFile(join(dist, "index.html"), "utf8");
+  // Hashed build files never change; the service worker must always be fresh.
+  root.use("/assets/*", async (c, next) => {
+    await next();
+    c.header("cache-control", "public, max-age=31536000, immutable");
+  });
+  root.use("/sw.js", async (c, next) => {
+    await next();
+    c.header("cache-control", "no-cache");
+  });
   root.use("/*", serveStatic({ root: dist }));
   root.get("*", (c) => (c.req.path.startsWith("/api/") ? c.notFound() : c.html(indexHtml)));
 }

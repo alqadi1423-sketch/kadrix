@@ -41,6 +41,7 @@ export interface Member {
   name: string;
   email: string;
   role: Role;
+  kind?: "human" | "agent";
   /** Guests only: the projects they can see. */
   projectIds?: string[] | null;
 }
@@ -519,6 +520,16 @@ export const api = {
   importPreview: (slug: string, csv: string) => call<{ headers: string[] }>("POST", `${ws(slug)}/import/preview`, { csv }),
   runImport: (slug: string, input: ImportInput) =>
     call<{ stats: { created: number; updated: number; skipped: number; labels: number } }>("POST", `${ws(slug)}/import`, input),
+
+  agents: (slug: string) =>
+    call<{ agents: { id: string; name: string; role: Role; tokenPrefix: string | null; canWrite: boolean; lastUsedAt: string | null }[] }>("GET", `${ws(slug)}/agents`),
+  createAgent: (slug: string, input: { name: string; role: "member" | "guest"; write: boolean; projectIds?: string[] }) =>
+    call<{ agent: { id: string; name: string }; token: string }>("POST", `${ws(slug)}/agents`, input),
+  rotateAgentToken: (slug: string, id: string, write: boolean) => call<{ token: string }>("POST", `${ws(slug)}/agents/${id}/token`, { write }),
+  removeAgent: (slug: string, id: string) => call("DELETE", `${ws(slug)}/agents/${id}`),
+  ai: () => call<{ enabled: boolean; provider: string | null }>("GET", "/ai"),
+  aiSummary: (slug: string, issueId: string) => call<{ summary: string }>("POST", `${ws(slug)}/issues/${issueId}/ai/summary`, {}),
+  aiDraft: (slug: string, text: string) => call<{ draft: { title: string; description: string } }>("POST", `${ws(slug)}/ai/draft-issue`, { text }),
 
   views: (slug: string) => call<{ views: SavedView[] }>("GET", `${ws(slug)}/views`),
   createView: (slug: string, input: Omit<SavedView, "id" | "ownerId">) =>

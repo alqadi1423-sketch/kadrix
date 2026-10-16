@@ -14,7 +14,7 @@ Status: ✅ done · 🔨 in progress · ⏳ not started
 | 4 | Docs and collaboration | ✅ |
 | 4.5 | External review fixes | ✅ |
 | 5 | Reports, automation, import | ✅ |
-| 6 | Future paths: agents, AI, mobile, cloud | ⏳ |
+| 6 | Future paths: agents, AI, mobile, cloud | ✅ |
 | 7 | Launch readiness | ⏳ |
 
 ## 0. Foundation ✅
@@ -64,11 +64,14 @@ Linear CSV, any CSV with column mapping, and GitHub Issues, safe to run
 again. Arabic search folds letter variants and diacritics and matches
 words with the attached article.
 
-## 6. Future paths ⏳
-Built in, not launched: agent user type and MCP server for AI coding
-agents, AI provider interface with no provider switched on, shared
-packages ready for a mobile app, installable PWA, edition flags for the
-cloud.
+## 6. Future paths ✅
+Built in, nothing launched. Agent members and an MCP server so AI coding
+tools (Claude Code, Cursor and others) can work in Veloq under their own
+name and permissions. AI provider interface (OpenAI-compatible or
+Anthropic) that stays off until an operator sets it, with issue summaries
+and "write it up for me" drafts hidden while off. `@veloq/client`, a typed
+client for a future mobile app. Installable PWA with an offline shell.
+Edition features (self-hosted or cloud) exposed by the health endpoint.
 
 ## 7. Launch readiness ⏳
 Security review, two-step sign-in (TOTP), upgrade path and versioned releases, images on GHCR,
