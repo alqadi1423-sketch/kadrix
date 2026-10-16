@@ -97,7 +97,8 @@ Checks, the same ones CI runs:
 ```bash
 export TEST_DATABASE_URL=postgres://veloq:veloq@localhost:5432/veloq_test
 pnpm check                          # RTL layout check, types, tests
-E2E_DATABASE_URL=postgres://veloq:veloq@localhost:5432/veloq_e2e pnpm build && pnpm e2e
+export E2E_DATABASE_URL=postgres://veloq:veloq@localhost:5432/veloq_e2e
+pnpm build && pnpm e2e              # browser tests on an empty database
 ```
 
 | Path | What it is |

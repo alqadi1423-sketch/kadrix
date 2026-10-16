@@ -28,8 +28,9 @@ test("two people edit one page at the same time, and issue keys link both ways",
   await expect(editorA).toContainText("English line", { timeout: 10_000 });
 
   // Each block picks its own direction.
-  const dirs = await editorA.locator("p").evaluateAll((ps) => ps.map((p) => getComputedStyle(p).direction));
-  expect(dirs).toEqual(["rtl", "ltr"]);
+  const dirOf = (text: string) => editorA.locator("p", { hasText: text }).first().evaluate((p) => getComputedStyle(p).direction);
+  expect(await dirOf("نبدأ بإصلاح")).toBe("rtl");
+  expect(await dirOf("English line")).toBe("ltr");
 
   // The page is stored and the issue it mentions knows about it.
   await expect
