@@ -15,7 +15,7 @@ Status: ✅ done · 🔨 in progress · ⏳ not started
 | 4.5 | External review fixes | ✅ |
 | 5 | Reports, automation, import | ✅ |
 | 6 | Future paths: agents, AI, mobile, cloud | ✅ |
-| 7 | Launch readiness | ⏳ |
+| 7 | Launch readiness | 🔨 |
 
 ## 0. Foundation ✅
 Monorepo (pnpm, Turborepo), TypeScript, AGPLv3 and CLA, PostgreSQL with

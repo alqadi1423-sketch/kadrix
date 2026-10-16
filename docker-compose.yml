@@ -1,17 +1,29 @@
 # Run Veloq on your own server:
-#   cp .env.example .env   (then set AUTH_SECRET)
+#   cp .env.example .env   (then set AUTH_SECRET and POSTGRES_PASSWORD)
 #   docker compose up -d
+# Upgrade: docker compose pull && docker compose up -d (migrations run on start).
 services:
   veloq:
+    image: ghcr.io/alqadi1423-sketch/veloq:${VELOQ_VERSION:-latest}
+    # Builds from this folder when the image cannot be pulled.
     build: .
     restart: unless-stopped
     ports:
       - "${PORT:-3000}:3000"
     environment:
-      DATABASE_URL: postgres://veloq:${POSTGRES_PASSWORD:-veloq}@db:5432/veloq
+      DATABASE_URL: postgres://veloq:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}@db:5432/veloq
       AUTH_SECRET: ${AUTH_SECRET:?Set AUTH_SECRET in .env (at least 32 characters)}
       BASE_URL: ${BASE_URL:-http://localhost:3000}
       VELOQ_EDITION: self-hosted
+      TRUST_PROXY: ${TRUST_PROXY:-0}
+      SMTP_URL: ${SMTP_URL:-}
+      MAIL_FROM: ${MAIL_FROM:-Veloq <no-reply@localhost>}
+      AI_PROVIDER: ${AI_PROVIDER:-}
+      AI_BASE_URL: ${AI_BASE_URL:-}
+      AI_API_KEY: ${AI_API_KEY:-}
+      AI_MODEL: ${AI_MODEL:-}
+    volumes:
+      - veloq-data:/app/data
     depends_on:
       db:
         condition: service_healthy
@@ -21,7 +33,7 @@ services:
     restart: unless-stopped
     environment:
       POSTGRES_USER: veloq
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-veloq}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
       POSTGRES_DB: veloq
     volumes:
       - veloq-db:/var/lib/postgresql/data
@@ -32,3 +44,4 @@ services:
 
 volumes:
   veloq-db:
+  veloq-data:

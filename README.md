@@ -1,28 +1,84 @@
-# Veloq
+<p align="center">
+  <img src="apps/web/public/icon.svg" width="72" height="72" alt="">
+</p>
 
-Open-source project management for tech teams. Arabic and English as equals, built to run on your own server.
+<h1 align="center">Veloq</h1>
 
-> Status: early development. Not ready for production use yet.
+<p align="center">
+  Open-source project management for software teams.<br>
+  Arabic and English as equals. Runs on your own server.
+</p>
 
-[العربية](#بالعربية)
+<p align="center">
+  <a href="README.ar.md">العربية</a> ·
+  <a href="docs/en/install.md">Install</a> ·
+  <a href="docs/en/configuration.md">Configure</a> ·
+  <a href="docs/en/agents.md">AI agents</a> ·
+  <a href="docs/en/api.md">API</a>
+</p>
+
+<p align="center">
+  <img src="docs/screenshots/board-ar.png" alt="A project board in Arabic, right to left">
+</p>
+
+> **Status:** not released yet. Everything below works and is tested, and the
+> first public version is being prepared. Expect changes until 1.0.
 
 ## Why Veloq
 
-- **Two languages, one product.** Full right-to-left Arabic and English, with neither one treated as a translation of the other.
-- **Yours to host.** One app container plus PostgreSQL. No search cluster, no message queue, no 16 GB server.
-- **Built for software work.** Issues, cycles, roadmaps and Git integration are the core, not add-ons.
-- **Open to agents.** A clean API so AI coding agents can read and work on issues.
+**Two languages, one product.** Every screen works right to left in Arabic and
+left to right in English, with neither treated as a translation. Mixed
+Arabic and English text keeps its own direction, Arabic search ignores
+spelling variants (إدارة finds ادارة, مشروع finds المشروع), time can be
+typed as `١س ٣٠د`, and the working week follows your region.
 
-## Run it
+**Yours to host.** One app container and PostgreSQL. No search cluster, no
+queue, no separate realtime service. Small teams run it on a 1 GB server.
+
+**Built for software work.** Issues with keys like `WEB-12`, boards, cycles
+with burndown, milestones, roadmaps with dependencies, releases with
+changelogs, and GitHub or GitLab linking that moves issues as pull requests
+open and merge.
+
+**Open to AI agents, closed to surprises.** A built-in MCP server lets Claude
+Code, Cursor and others work on issues under their own name and permissions.
+AI features are off until you choose a provider, including a local model.
+
+## Features
+
+| | |
+|---|---|
+| **Work** | Issues, sub-issues, relations, labels, priorities, estimates, custom fields, templates, recurring issues, bulk edit, saved views, list and board with WIP limits |
+| **Planning** | Cycles with rollover and velocity, burndown, milestones, initiatives with health updates, timeline with critical path, calendar |
+| **Docs** | Pages per project with live co-editing, presence, per-paragraph direction, and issue keys that link both ways |
+| **Developers** | GitHub and GitLab linking with Arabic and English closing words, API tokens, OpenAPI, signed webhooks (JSON, Slack, Discord), releases |
+| **Insight** | Lead and cycle time, throughput, cumulative flow, workload, time tracking |
+| **Automation** | Rules on six triggers with conditions and seven actions, safely bounded |
+| **Moving in** | Import from Jira, Linear, GitHub Issues or any CSV, safe to run again |
+| **People** | Owners, admins, members, guests limited to chosen projects, AI agents, inbox, mentions, daily email digest |
+| **Security** | Two-step sign-in, NIST-style password rules, rate limits, append-only audit log, SSRF-safe webhooks, encrypted secrets |
+| **Anywhere** | Installable app with offline shell, works on phones, keyboard shortcuts and command menu |
+
+<p align="center">
+  <img src="docs/screenshots/reports-en.png" width="49%" alt="Reports">
+  <img src="docs/screenshots/docs-ar.png" width="49%" alt="A shared document in Arabic">
+</p>
+<p align="center">
+  <img src="docs/screenshots/list-en.png" width="49%" alt="Issue list in English">
+  <img src="docs/screenshots/issue-ar.png" width="49%" alt="An issue in Arabic">
+</p>
+
+## Quick start
 
 ```bash
 git clone https://github.com/alqadi1423-sketch/veloq.git
 cd veloq
-cp .env.example .env        # set AUTH_SECRET to a long random value
+cp .env.example .env    # set AUTH_SECRET and POSTGRES_PASSWORD
 docker compose up -d
 ```
 
-Open http://localhost:3000 and create an account.
+Open http://localhost:3000 and create an account. For a real server, HTTPS,
+or installing without Docker, see the [install guide](docs/en/install.md).
 
 ## Develop
 
@@ -33,71 +89,39 @@ pnpm install
 export DATABASE_URL=postgres://veloq:veloq@localhost:5432/veloq
 export AUTH_SECRET=$(openssl rand -base64 48)
 pnpm --filter @veloq/server dev     # API on :3000, runs migrations
-pnpm --filter @veloq/web dev        # web on :5173
+pnpm --filter @veloq/web dev        # web app on :5173
 ```
 
-Checks (the same ones CI runs):
+Checks, the same ones CI runs:
 
 ```bash
 export TEST_DATABASE_URL=postgres://veloq:veloq@localhost:5432/veloq_test
-pnpm check
+pnpm check                          # RTL layout check, types, tests
+E2E_DATABASE_URL=postgres://veloq:veloq@localhost:5432/veloq_e2e pnpm build && pnpm e2e
 ```
-
-## Layout
 
 | Path | What it is |
 |---|---|
-| `apps/server` | HTTP API (Hono), authentication (Better Auth) |
-| `apps/web` | Web app (React, Vite, Tailwind) |
-| `packages/core` | Permissions, validation, edition flag |
-| `packages/db` | Database schema and migrations (Drizzle, PostgreSQL) |
-| `packages/i18n` | Arabic and English messages |
+| `apps/server` | HTTP API (Hono), auth (Better Auth), realtime, MCP server, workers |
+| `apps/web` | Web app (React, TanStack, Tailwind, Tiptap) |
+| `apps/e2e` | Browser tests (Playwright) |
+| `packages/core` | Permissions, validation, planning and report math |
+| `packages/db` | Schema and migrations (Drizzle, PostgreSQL) |
+| `packages/i18n` | Arabic and English messages, kept equal by a test |
+| `packages/client` | Typed API client for scripts and a future mobile app |
+
+How it fits together: [ARCHITECTURE.md](docs/ARCHITECTURE.md). Rules every
+change follows, for people and coding agents: [AGENTS.md](AGENTS.md).
 
 ## Contributing
 
-See [CONTRIBUTING.md](CONTRIBUTING.md). Contributions require agreeing to the [CLA](CLA.md).
+Contributions in Arabic or English are welcome. See [CONTRIBUTING.md](CONTRIBUTING.md).
+You will be asked once to agree to the [CLA](CLA.md).
+Security issues: please follow [SECURITY.md](SECURITY.md).
 
 ## License
 
-[GNU AGPL v3 or later](LICENSE). If you run a modified Veloq for others over a network, you must offer them its source code.
-
----
-
-## بالعربية
-
-Veloq
-أداة مفتوحة المصدر لإدارة المشاريع التقنية. العربية والإنجليزية فيها بمستوى واحد، وتعمل على خادمك الخاص.
-
-> الحالة: تطوير مبكر، غير جاهزة للاستخدام الفعلي بعد.
-
-### لماذا
-
-- **لغتان في منتج واحد:** عربية كاملة من اليمين لليسار، وإنجليزية، دون أن تكون إحداهما ترجمة للأخرى.
-- **تستضيفها بنفسك:** حاوية للتطبيق وقاعدة بيانات واحدة فقط.
-- **مصممة للعمل البرمجي:** المهام والدورات وخرائط الطريق والربط مع
-Git
-في صلبها.
-- **مفتوحة للوكلاء الذكيين:** واجهة برمجية واضحة يعمل عليها وكلاء البرمجة.
-
-### التشغيل
-
-انسخ الملف
-`.env.example`
-إلى
-`.env`
-وضع قيمة طويلة عشوائية في
-`AUTH_SECRET`
-ثم شغّل:
-
-```bash
-docker compose up -d
-```
-
-وافتح
-http://localhost:3000
-
-### الرخصة
-
-GNU AGPL v3
-
-إذا شغّلت نسخة معدّلة لآخرين عبر الشبكة، يلزمك إتاحة الكود المصدري لهم.
+[GNU AGPL v3.0 or later](LICENSE). You can use, change and host Veloq freely;
+if you offer a changed version to others over a network, share your changes
+under the same license. The name and logo are covered by the
+[trademark policy](TRADEMARKS.md).
