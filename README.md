@@ -16,7 +16,7 @@ Open-source project management for tech teams. Arabic and English as equals, bui
 ## Run it
 
 ```bash
-git clone https://github.com/<owner>/veloq.git
+git clone https://github.com/alqadi1423-sketch/veloq.git
 cd veloq
 cp .env.example .env        # set AUTH_SECRET to a long random value
 docker compose up -d
