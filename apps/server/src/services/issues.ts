@@ -20,6 +20,7 @@ import type { z } from "zod";
 import type { Db, Tx } from "../context.js";
 import { ApiError, invalid, notFound } from "../errors.js";
 import type { ChangeEvent, EventBus } from "../events.js";
+import { enqueueWebhooks } from "./webhooks.js";
 
 type CreateInput = z.infer<typeof createIssueSchema>;
 type UpdateInput = z.infer<typeof updateIssueSchema>;
@@ -29,6 +30,8 @@ export interface IssueContext {
   events: EventBus;
   workspaceId: string;
   actorId: string | null;
+  /** Integration that made the change, when no person did (e.g. "github"). */
+  source?: string | null;
 }
 
 /** Collects events and publishes them only after the transaction commits. */
@@ -46,6 +49,33 @@ class Outbox {
       await bus.publish(e).catch(() => {});
     }
   }
+}
+
+/** Public shape of an issue in webhook payloads. */
+async function issuePayload(tx: Tx, issueId: string) {
+  const [row] = await tx
+    .select({
+      id: issue.id,
+      number: issue.number,
+      projectId: issue.projectId,
+      projectKey: project.key,
+      title: issue.title,
+      type: issue.type,
+      priority: issue.priority,
+      stateId: issue.stateId,
+      stateName: workflowState.name,
+      stateCategory: workflowState.category,
+      assigneeId: issue.assigneeId,
+      parentId: issue.parentId,
+      cycleId: issue.cycleId,
+      dueDate: issue.dueDate,
+      updatedAt: issue.updatedAt,
+    })
+    .from(issue)
+    .innerJoin(project, eq(project.id, issue.projectId))
+    .innerJoin(workflowState, eq(workflowState.id, issue.stateId))
+    .where(eq(issue.id, issueId));
+  return row ? { ...row, key: `${row.projectKey}-${row.number}` } : null;
 }
 
 /* ---------------------------- validation ---------------------------- */
@@ -237,6 +267,7 @@ export async function createIssue(ctx: IssueContext, input: CreateInput) {
       userIds: [input.assigneeId],
     });
     await notifyMentions(tx, outbox, ctx, row.id, mentioned);
+    await enqueueWebhooks(tx, ctx.workspaceId, "issue.created", { issue: await issuePayload(tx, row.id), actorId: ctx.actorId });
     outbox.add({ workspaceId: ctx.workspaceId, entity: "issue", id: row.id });
     return row;
   });
@@ -304,6 +335,7 @@ export async function updateIssue(ctx: IssueContext, issueId: string, input: Upd
         workspaceId: ctx.workspaceId,
         issueId,
         actorId: ctx.actorId,
+        source: ctx.source ?? null,
         field,
         // Long text is not copied into the history, only the fact it changed.
         fromValue: field === "description" ? null : prev,
@@ -336,6 +368,7 @@ export async function updateIssue(ctx: IssueContext, issueId: string, input: Upd
         workspaceId: ctx.workspaceId,
         issueId,
         actorId: ctx.actorId,
+        source: ctx.source ?? null,
         field: "state",
         fromValue: from ? { id: from.id, name: from.name } : null,
         toValue: { id: to.id, name: to.name },
@@ -392,6 +425,13 @@ export async function updateIssue(ctx: IssueContext, issueId: string, input: Upd
       await subscribe(tx, issueId, added);
       await notifyMentions(tx, outbox, ctx, issueId, added);
     }
+    if (activity.length) {
+      await enqueueWebhooks(tx, ctx.workspaceId, "issue.updated", {
+        issue: await issuePayload(tx, issueId),
+        changes: activity.map((a) => ({ field: a.field, from: a.fromValue ?? null, to: a.toValue ?? null })),
+        actorId: ctx.actorId,
+      });
+    }
     if (activity.length || input.sortOrder !== undefined) {
       outbox.add({ workspaceId: ctx.workspaceId, entity: "issue", id: issueId });
     }
@@ -427,6 +467,10 @@ export async function addComment(ctx: IssueContext, issueId: string, body: strin
       userIds: subs.filter((s) => !mentioned.includes(s)),
     });
     await tx.update(issue).set({ updatedAt: new Date() }).where(eq(issue.id, issueId));
+    await enqueueWebhooks(tx, ctx.workspaceId, "comment.created", {
+      comment: { id: row!.id, body: row!.body, authorId: ctx.actorId, createdAt: row!.createdAt },
+      issue: await issuePayload(tx, issueId),
+    });
     outbox.add({ workspaceId: ctx.workspaceId, entity: "comment", id: issueId });
     return row!;
   });

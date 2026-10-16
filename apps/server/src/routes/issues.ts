@@ -26,6 +26,7 @@ import { type AppDeps, type Env, assertCan, parseBody, parseQuery, requireUser, 
 import { ApiError, forbidden, invalid, notFound } from "../errors.js";
 import { addComment, createIssue, updateIssue } from "../services/issues.js";
 import { getIssue, listIssues, listIssuesByIds } from "../services/query.js";
+import { enqueueWebhooks } from "../services/webhooks.js";
 import { MAX_UPLOAD_BYTES } from "../storage.js";
 
 export function issueRoutes(deps: AppDeps) {
@@ -120,7 +121,11 @@ export function issueRoutes(deps: AppDeps) {
     const m = c.get("membership");
     const found = await issueInWs(m.workspaceId, c.req.param("id"));
     const files = await db.select({ key: attachment.storageKey }).from(attachment).where(eq(attachment.issueId, found.id));
-    await db.delete(issue).where(eq(issue.id, found.id));
+    const gone = await getIssue(db, m.workspaceId, eq(issue.id, found.id));
+    await db.transaction(async (tx) => {
+      await enqueueWebhooks(tx, m.workspaceId, "issue.deleted", { issue: gone, actorId: requireUser(c).id });
+      await tx.delete(issue).where(eq(issue.id, found.id));
+    });
     for (const f of files) await storage.delete(f.key).catch(() => {});
     await events.publish({ workspaceId: m.workspaceId, entity: "issue", id: found.id }).catch(() => {});
     return c.json({ ok: true });
@@ -133,6 +138,7 @@ export function issueRoutes(deps: AppDeps) {
       .select({
         id: issueActivity.id,
         field: issueActivity.field,
+        source: issueActivity.source,
         fromValue: issueActivity.fromValue,
         toValue: issueActivity.toValue,
         createdAt: issueActivity.createdAt,

@@ -5,6 +5,7 @@ import type { Context, MiddlewareHandler } from "hono";
 import type { z } from "zod";
 import type { Auth } from "./auth.js";
 import { forbidden, invalid, notFound, unauthorized } from "./errors.js";
+import type { Sealer } from "./crypto.js";
 import type { EventBus } from "./events.js";
 import type { Storage } from "./storage.js";
 
@@ -16,6 +17,7 @@ export type Env = {
     user: SessionUser | null;
     /** Set when the request authenticated with an API token. */
     tokenWorkspaceId: string | null;
+    tokenScopes: string[] | null;
     membership: Membership;
   };
 };
@@ -30,8 +32,14 @@ export interface AppDeps {
   events: EventBus;
   storage: Storage;
   baseUrl: string;
-  /** Secret used to verify GitHub webhook signatures, if configured. */
-  githubWebhookSecret?: string | null;
+  /** Encrypts webhook and integration secrets at rest. */
+  sealer: Sealer;
+  /** Allow webhooks to private/internal addresses (self-hosted intranets). */
+  allowPrivateWebhooks: boolean;
+  /** Requests per minute per user or IP; 0 disables the limiter. */
+  rateLimitPerMinute?: number;
+  /** Override for outgoing webhook HTTP calls (tests). */
+  webhookFetch?: typeof fetch;
 }
 
 export function requireUser(c: Context<Env>): SessionUser {

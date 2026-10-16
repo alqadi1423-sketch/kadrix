@@ -115,6 +115,7 @@ export interface Comment {
 export interface Activity {
   id: string;
   field: string;
+  source: string | null;
   fromValue: unknown;
   toValue: unknown;
   createdAt: string;
@@ -195,6 +196,66 @@ export interface Timeline {
   criticalPath: string[];
   criticalLength: number;
   weekend: number[];
+}
+
+export interface IssueLink {
+  id: string;
+  provider: string;
+  kind: "pull_request" | "commit" | "branch";
+  url: string;
+  title: string | null;
+  state: string | null;
+  updatedAt: string;
+}
+export interface ApiToken {
+  id: string;
+  name: string;
+  prefix: string;
+  scopes: string[];
+  lastUsedAt: string | null;
+  expiresAt: string | null;
+  createdAt: string;
+}
+export interface Webhook {
+  id: string;
+  url: string;
+  events: string[];
+  active: boolean;
+  failing: number;
+}
+export interface Delivery {
+  id: string;
+  event: string;
+  status: string;
+  attempts: number;
+  lastStatusCode: number | null;
+  lastError: string | null;
+  createdAt: string;
+}
+export interface PrMapping {
+  draft: "started" | "completed" | null;
+  open: "started" | "completed" | null;
+  reviewRequested: "started" | "completed" | null;
+  merged: "started" | "completed" | null;
+  closed: "started" | "completed" | null;
+  reviewStateName: string | null;
+}
+export interface Integration {
+  id: string;
+  provider: "github" | "gitlab";
+  name: string;
+  endpoint: string;
+  lastEventAt: string | null;
+  config: PrMapping;
+}
+export interface Release {
+  id: string;
+  version: string;
+  name: string | null;
+  notes: string | null;
+  releasedAt: string | null;
+  createdAt: string;
+  issueCount: number;
 }
 
 const ws = (slug: string) => `/workspaces/${slug}`;
@@ -303,6 +364,32 @@ export const api = {
     ),
   postUpdate: (slug: string, input: { initiativeId?: string; projectId?: string; health: StatusUpdate["health"]; body: string }) =>
     call("POST", `${ws(slug)}/updates`, input),
+
+  links: (slug: string, id: string) => call<{ links: IssueLink[]; branch: string }>("GET", `${ws(slug)}/issues/${id}/links`),
+  tokens: (slug: string) => call<{ tokens: ApiToken[] }>("GET", `${ws(slug)}/tokens`),
+  createToken: (slug: string, input: { name: string; scopes: string[]; expiresInDays?: number | null }) =>
+    call<{ token: ApiToken & { value: string } }>("POST", `${ws(slug)}/tokens`, input),
+  revokeToken: (slug: string, id: string) => call("DELETE", `${ws(slug)}/tokens/${id}`),
+  webhooks: (slug: string) => call<{ webhooks: Webhook[] }>("GET", `${ws(slug)}/webhooks`),
+  createWebhook: (slug: string, input: { url: string; events: string[] }) =>
+    call<{ webhook: Webhook & { secret: string } }>("POST", `${ws(slug)}/webhooks`, input),
+  updateWebhook: (slug: string, id: string, patch: Partial<{ url: string; events: string[]; active: boolean }>) =>
+    call("PATCH", `${ws(slug)}/webhooks/${id}`, patch),
+  deleteWebhook: (slug: string, id: string) => call("DELETE", `${ws(slug)}/webhooks/${id}`),
+  deliveries: (slug: string, id: string) => call<{ deliveries: Delivery[] }>("GET", `${ws(slug)}/webhooks/${id}/deliveries`),
+  pingWebhook: (slug: string, id: string) => call("POST", `${ws(slug)}/webhooks/${id}/ping`),
+  integrations: (slug: string) => call<{ integrations: Integration[] }>("GET", `${ws(slug)}/integrations`),
+  createIntegration: (slug: string, input: { provider: "github" | "gitlab"; name: string }) =>
+    call<{ integration: Integration & { secret: string } }>("POST", `${ws(slug)}/integrations`, input),
+  updateIntegration: (slug: string, id: string, config: PrMapping) => call("PATCH", `${ws(slug)}/integrations/${id}`, config),
+  deleteIntegration: (slug: string, id: string) => call("DELETE", `${ws(slug)}/integrations/${id}`),
+  releases: (slug: string, projectId: string) => call<{ releases: Release[] }>("GET", `${ws(slug)}/projects/${projectId}/releases`),
+  releaseDraft: (slug: string, projectId: string) =>
+    call<{ issues: Issue[] }>("GET", `${ws(slug)}/projects/${projectId}/releases/draft`),
+  createRelease: (slug: string, projectId: string, input: { version: string; name?: string | null; notes?: string | null; issueIds: string[] }) =>
+    call<{ release: Release }>("POST", `${ws(slug)}/projects/${projectId}/releases`, input),
+  publishRelease: (slug: string, id: string) => call("POST", `${ws(slug)}/releases/${id}/publish`),
+  deleteRelease: (slug: string, id: string) => call("DELETE", `${ws(slug)}/releases/${id}`),
 
   views: (slug: string) => call<{ views: SavedView[] }>("GET", `${ws(slug)}/views`),
   createView: (slug: string, input: Omit<SavedView, "id" | "ownerId">) =>

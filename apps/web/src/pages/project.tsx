@@ -8,6 +8,7 @@ import { FilterBar } from "../components/filter-bar";
 import { CalendarTab } from "../components/planning/calendar";
 import { CyclesTab } from "../components/planning/cycles";
 import { MilestonesTab } from "../components/planning/milestones";
+import { ReleasesTab } from "../components/planning/releases";
 import { TimelineTab } from "../components/planning/timeline";
 import { IssueBoard } from "../components/issue-board";
 import { IssueList } from "../components/issue-list";
@@ -16,8 +17,8 @@ import { useWorkspaceUi } from "../layout";
 import { Button, Empty } from "../ui";
 
 type Layout = "list" | "board";
-type Tab = "issues" | "cycles" | "milestones" | "timeline" | "calendar";
-const TABS: Tab[] = ["issues", "cycles", "milestones", "timeline", "calendar"];
+type Tab = "issues" | "cycles" | "milestones" | "timeline" | "calendar" | "releases";
+const TABS: Tab[] = ["issues", "cycles", "milestones", "timeline", "calendar", "releases"];
 
 /** Remembers the last layout per project in this browser. */
 function useLayoutPref(projectId: string): [Layout, (l: Layout) => void] {
@@ -117,6 +118,7 @@ export function ProjectPage() {
       {tab === "milestones" && <MilestonesTab slug={slug} projectId={projectId} canManage={can(role, "planning.manage")} />}
       {tab === "timeline" && <TimelineTab slug={slug} projectId={projectId} canEdit={can(role, "issue.update")} />}
       {tab === "calendar" && <CalendarTab slug={slug} projectId={projectId} />}
+      {tab === "releases" && <ReleasesTab slug={slug} projectId={projectId} canManage={can(role, "planning.manage")} />}
       {tab === "issues" && <>
       <div className="flex flex-wrap items-center gap-2">
         <FilterBar filter={filter} onChange={setFilter} members={members.data ?? []} labels={labels.data ?? []} />

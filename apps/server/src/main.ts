@@ -6,6 +6,8 @@ import { Hono } from "hono";
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { createApp } from "./app.js";
+import { createSealer } from "./crypto.js";
+import { startDeliveryWorker } from "./services/webhooks.js";
 import { createAuth } from "./auth.js";
 import { loadConfig } from "./config.js";
 import { createPgEventBus } from "./events.js";
@@ -20,6 +22,8 @@ const { db } = createDb(config.databaseUrl);
 const auth = createAuth(db, { secret: config.authSecret, baseUrl: config.baseUrl });
 const events = createPgEventBus(config.databaseUrl);
 const storage = createDiskStorage(config.dataDir);
+const sealer = createSealer(config.authSecret);
+startDeliveryWorker(db, { sealer, allowPrivate: config.allowPrivateWebhooks });
 
 const root = new Hono();
 const { injectWebSocket, upgradeWebSocket } = createNodeWebSocket({ app: root });
@@ -33,7 +37,9 @@ root.route(
     events,
     storage,
     baseUrl: config.baseUrl,
-    githubWebhookSecret: config.githubWebhookSecret,
+    sealer,
+    allowPrivateWebhooks: config.allowPrivateWebhooks,
+    rateLimitPerMinute: config.rateLimitPerMinute,
   }),
 );
 

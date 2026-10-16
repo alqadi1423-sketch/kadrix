@@ -28,7 +28,9 @@ export function workspaceRoutes({ db }: AppDeps) {
       .innerJoin(workspace, eq(workspace.id, workspaceMember.workspaceId))
       .where(eq(workspaceMember.userId, u.id))
       .orderBy(workspace.name);
-    return c.json({ workspaces: rows });
+    // A token only ever sees the workspace it was created in.
+    const only = c.get("tokenWorkspaceId");
+    return c.json({ workspaces: only ? rows.filter((r) => r.id === only) : rows });
   });
 
   app.post("/workspaces", async (c) => {

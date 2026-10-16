@@ -10,7 +10,8 @@ export interface Config {
   webDist: string | null;
   /** Where uploaded files are stored. */
   dataDir: string;
-  githubWebhookSecret: string | null;
+  allowPrivateWebhooks: boolean;
+  rateLimitPerMinute: number;
 }
 
 export function loadConfig(env = process.env): Config {
@@ -28,6 +29,7 @@ export function loadConfig(env = process.env): Config {
     edition: parseEdition(env.VELOQ_EDITION),
     webDist: env.WEB_DIST ?? null,
     dataDir: env.DATA_DIR ?? "./data",
-    githubWebhookSecret: env.GITHUB_WEBHOOK_SECRET || null,
+    allowPrivateWebhooks: env.WEBHOOK_ALLOW_PRIVATE === "1",
+    rateLimitPerMinute: Number(env.RATE_LIMIT_PER_MINUTE ?? 600),
   };
 }

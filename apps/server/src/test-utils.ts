@@ -3,6 +3,7 @@ import { sql } from "drizzle-orm";
 import { expect } from "vitest";
 import { createApp } from "./app.js";
 import { createAuth } from "./auth.js";
+import { createSealer } from "./crypto.js";
 import { createMemoryEventBus } from "./events.js";
 import { createMemoryStorage } from "./storage.js";
 
@@ -19,6 +20,8 @@ export function setupTestApp() {
   const auth = createAuth(db, { secret: "test-secret-test-secret-test-secret!!", baseUrl: BASE });
   const events = createMemoryEventBus();
   const storage = createMemoryStorage();
+  const sent: { url: string; init: RequestInit }[] = [];
+  const webhookStatus = { value: 200 };
   const app = createApp({
     db,
     auth,
@@ -26,7 +29,12 @@ export function setupTestApp() {
     events,
     storage,
     baseUrl: BASE,
-    githubWebhookSecret: "gh-test-secret",
+    sealer: createSealer("test-secret-test-secret-test-secret!!"),
+    allowPrivateWebhooks: false,
+    webhookFetch: async (url: string | URL | Request, init?: RequestInit) => {
+      sent.push({ url: String(url), init: init ?? {} });
+      return new Response("ok", { status: webhookStatus.value });
+    },
   });
 
   async function signUp(name: string) {
@@ -58,6 +66,8 @@ export function setupTestApp() {
     db,
     events,
     storage,
+    sent,
+    webhookStatus,
     signUp,
     migrate: () => runMigrations(url),
     reset: () => db.execute(sql`TRUNCATE "user", workspace CASCADE`),

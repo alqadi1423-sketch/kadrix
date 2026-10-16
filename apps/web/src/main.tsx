@@ -18,6 +18,21 @@ import { SettingsPage } from "./pages/settings";
 import { ViewsPage, WorkspaceCalendar } from "./pages/views";
 import { WorkspacesPage } from "./pages/workspaces";
 import { Shell } from "./shell";
+import { IntegrationsSettings, TokensSettings, WebhooksSettings } from "./components/dev";
+import { can } from "@veloq/core";
+
+function Settings() {
+  const { t } = useTranslation();
+  return (
+    <SettingsPage
+      extraTabs={[
+        { id: "integrations", label: t("integrations.title"), show: (r) => can(r, "integration.manage"), render: (s) => <IntegrationsSettings slug={s} /> },
+        { id: "webhooks", label: t("webhooks.title"), show: (r) => can(r, "webhook.manage"), render: (s) => <WebhooksSettings slug={s} /> },
+        { id: "tokens", label: t("tokens.title"), show: (r) => can(r, "token.manage"), render: (s) => <TokensSettings slug={s} /> },
+      ]}
+    />
+  );
+}
 
 const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false, staleTime: 10_000 } } });
 
@@ -48,7 +63,7 @@ const issueRoute = createRoute({ getParentRoute: () => wsRoute, path: "/i/$key",
 const initiativesRoute = createRoute({ getParentRoute: () => wsRoute, path: "/initiatives", component: InitiativesPage });
 const calendarRoute = createRoute({ getParentRoute: () => wsRoute, path: "/calendar", component: WorkspaceCalendar });
 const viewsRoute = createRoute({ getParentRoute: () => wsRoute, path: "/views", component: ViewsPage });
-const settingsRoute = createRoute({ getParentRoute: () => wsRoute, path: "/settings", component: () => <SettingsPage /> });
+const settingsRoute = createRoute({ getParentRoute: () => wsRoute, path: "/settings", component: Settings });
 
 const routeTree = rootRoute.addChildren([
   indexRoute,

@@ -4,6 +4,7 @@ import { Link, useNavigate, useParams } from "@tanstack/react-router";
 import { useEffect, useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { api, type Issue, type Member, type Relation } from "../api";
+import { DevSection } from "../components/dev";
 import { Avatar, LabelChip, StateIcon } from "../components/icons";
 import { IssueRow } from "../components/issue-row";
 import { Markdown } from "../components/markdown";
@@ -76,6 +77,7 @@ function IssueDetail({ slug, id }: { slug: string; id: string }) {
         />
         <SubIssues slug={slug} issue={issue} children={detail.data.children} labels={labels.data ?? []} onAdd={() => ui.newIssue({ projectId: issue.projectId, parentId: issue.id })} editable={editable} />
         <Relations slug={slug} issue={issue} relations={detail.data.relations} related={detail.data.related} editable={editable} />
+        <DevSection slug={slug} issueId={id} issueKey={issue.key} />
         <Attachments slug={slug} id={id} editable={editable} />
         <Conversation slug={slug} id={id} members={m} canComment={can(role, "comment.create")} canModerate={can(role, "issue.delete")} />
       </div>
@@ -576,7 +578,11 @@ function Conversation({
         node: (
           <p className="flex items-center gap-2 text-sm text-muted">
             <span className="size-1.5 rounded-full bg-line" />
-            {t(known ? `activity.${k}` : "activity.other", { actor: a.actorName ?? "?", to, field: a.field })}
+            {t(known ? `activity.${k}` : "activity.other", {
+              actor: a.actorName ?? (a.source ? t(`integrations.${a.source}`) : "?"),
+              to,
+              field: a.field,
+            })}
             <time className="ms-auto text-xs" dateTime={a.createdAt}>
               {fmt.format(new Date(a.createdAt))}
             </time>

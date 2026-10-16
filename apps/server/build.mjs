@@ -11,5 +11,5 @@ await build({
   format: "esm",
   target: "node22",
   sourcemap: true,
-  external: ["hono", "@hono/*", "better-auth", "better-auth/*", "drizzle-orm", "drizzle-orm/*", "postgres", "zod"],
+  external: ["hono", "@hono/*", "better-auth", "better-auth/*", "drizzle-orm", "drizzle-orm/*", "postgres", "zod", "undici"],
 });

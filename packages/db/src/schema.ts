@@ -352,6 +352,8 @@ export const issueActivity = pgTable(
       .notNull()
       .references(() => issue.id, { onDelete: "cascade" }),
     actorId: text("actor_id").references(() => user.id, { onDelete: "set null" }),
+    /** Set when a change came from an integration rather than a person (e.g. "github"). */
+    source: text("source"),
     field: text("field").notNull(),
     fromValue: jsonb("from_value"),
     toValue: jsonb("to_value"),
@@ -489,4 +491,136 @@ export const statusUpdate = pgTable(
     createdAt: createdAt(),
   },
   (t) => [index("status_initiative_idx").on(t.initiativeId, t.createdAt), index("status_project_idx").on(t.projectId, t.createdAt)],
+);
+
+/* ------------------------------------------------------------------ */
+/* Developer integration: tokens, webhooks, Git links, releases       */
+/* ------------------------------------------------------------------ */
+
+/** Personal API tokens, bound to one user in one workspace. Only a hash is stored. */
+export const apiToken = pgTable(
+  "api_token",
+  {
+    id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+    workspaceId: wsRef(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    name: text("name").notNull(),
+    tokenHash: text("token_hash").notNull().unique(),
+    /** First characters, shown so people can tell tokens apart. */
+    prefix: text("prefix").notNull(),
+    scopes: text("scopes").array().notNull(),
+    lastUsedAt: timestamp("last_used_at", { withTimezone: true }),
+    expiresAt: timestamp("expires_at", { withTimezone: true }),
+    revokedAt: timestamp("revoked_at", { withTimezone: true }),
+    createdAt: createdAt(),
+  },
+  (t) => [index("token_user_idx").on(t.userId)],
+);
+
+export const webhook = pgTable(
+  "webhook",
+  {
+    id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+    workspaceId: wsRef(),
+    url: text("url").notNull(),
+    secret: text("secret").notNull(),
+    events: text("events").array().notNull(),
+    active: boolean("active").notNull().default(true),
+    createdBy: text("created_by").references(() => user.id, { onDelete: "set null" }),
+    createdAt: createdAt(),
+  },
+  (t) => [index("webhook_ws_idx").on(t.workspaceId)],
+);
+
+/** Outgoing deliveries: a PostgreSQL-backed queue with retries. */
+export const webhookDelivery = pgTable(
+  "webhook_delivery",
+  {
+    id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+    workspaceId: wsRef(),
+    webhookId: uuid("webhook_id")
+      .notNull()
+      .references(() => webhook.id, { onDelete: "cascade" }),
+    event: text("event").notNull(),
+    payload: jsonb("payload").$type<Record<string, unknown>>().notNull(),
+    /** pending | success | failed */
+    status: text("status").notNull().default("pending"),
+    attempts: integer("attempts").notNull().default(0),
+    nextAttemptAt: timestamp("next_attempt_at", { withTimezone: true }).notNull().defaultNow(),
+    lastStatusCode: integer("last_status_code"),
+    lastError: text("last_error"),
+    deliveredAt: timestamp("delivered_at", { withTimezone: true }),
+    createdAt: createdAt(),
+  },
+  (t) => [index("delivery_due_idx").on(t.status, t.nextAttemptAt), index("delivery_hook_idx").on(t.webhookId, t.createdAt)],
+);
+
+/** Incoming Git provider connection (GitHub or GitLab webhooks). */
+export const integration = pgTable(
+  "integration",
+  {
+    id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+    workspaceId: wsRef(),
+    provider: text("provider").notNull(),
+    name: text("name").notNull(),
+    secret: text("secret").notNull(),
+    config: jsonb("config").$type<Record<string, unknown>>().notNull().default({}),
+    lastEventAt: timestamp("last_event_at", { withTimezone: true }),
+    createdAt: createdAt(),
+  },
+  (t) => [index("integration_ws_idx").on(t.workspaceId)],
+);
+
+export const issueLink = pgTable(
+  "issue_link",
+  {
+    id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+    workspaceId: wsRef(),
+    issueId: uuid("issue_id")
+      .notNull()
+      .references(() => issue.id, { onDelete: "cascade" }),
+    provider: text("provider").notNull(),
+    /** pull_request | commit | branch */
+    kind: text("kind").notNull(),
+    externalId: text("external_id").notNull(),
+    url: text("url").notNull(),
+    title: text("title"),
+    /** draft | open | merged | closed (pull requests) */
+    state: text("state"),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+  },
+  (t) => [uniqueIndex("issue_link_uq").on(t.issueId, t.provider, t.kind, t.externalId), index("issue_link_issue_idx").on(t.issueId)],
+);
+
+export const release = pgTable(
+  "release",
+  {
+    id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+    workspaceId: wsRef(),
+    projectId: uuid("project_id")
+      .notNull()
+      .references(() => project.id, { onDelete: "cascade" }),
+    version: text("version").notNull(),
+    name: text("name"),
+    notes: text("notes"),
+    releasedAt: timestamp("released_at", { withTimezone: true }),
+    createdAt: createdAt(),
+  },
+  (t) => [uniqueIndex("release_project_version_uq").on(t.projectId, t.version)],
+);
+
+export const releaseIssue = pgTable(
+  "release_issue",
+  {
+    releaseId: uuid("release_id")
+      .notNull()
+      .references(() => release.id, { onDelete: "cascade" }),
+    issueId: uuid("issue_id")
+      .notNull()
+      .references(() => issue.id, { onDelete: "cascade" }),
+  },
+  (t) => [primaryKey({ columns: [t.releaseId, t.issueId] })],
 );
