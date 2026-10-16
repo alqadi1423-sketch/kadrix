@@ -21,6 +21,7 @@ import {
 } from "drizzle-orm/pg-core";
 
 const tsvector = customType<{ data: string }>({ dataType: () => "tsvector" });
+const bytea = customType<{ data: Buffer; driverData: Buffer }>({ dataType: () => "bytea" });
 
 const createdAt = () => timestamp("created_at", { withTimezone: true }).notNull().defaultNow();
 const updatedAt = () =>
@@ -527,6 +528,8 @@ export const webhook = pgTable(
     url: text("url").notNull(),
     secret: text("secret").notNull(),
     events: text("events").array().notNull(),
+    /** Payload shape: "veloq" (JSON), "slack" or "discord" (chat message). */
+    format: text("format").notNull().default("veloq"),
     active: boolean("active").notNull().default(true),
     createdBy: text("created_by").references(() => user.id, { onDelete: "set null" }),
     createdAt: createdAt(),
@@ -624,3 +627,71 @@ export const releaseIssue = pgTable(
   },
   (t) => [primaryKey({ columns: [t.releaseId, t.issueId] })],
 );
+
+/* ------------------------------------------------------------------ */
+/* Docs and collaboration                                             */
+/* ------------------------------------------------------------------ */
+
+/**
+ * A document page. The body is a Yjs document (binary CRDT state) edited
+ * live by several people; `contentText` is a plain-text copy for search.
+ */
+export const page = pgTable(
+  "page",
+  {
+    id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+    workspaceId: wsRef(),
+    projectId: uuid("project_id").references(() => project.id, { onDelete: "cascade" }),
+    parentId: uuid("parent_id").references((): AnyPgColumn => page.id, { onDelete: "cascade" }),
+    title: text("title").notNull(),
+    ydoc: bytea("ydoc"),
+    contentText: text("content_text").notNull().default(""),
+    position: doublePrecision("position").notNull().default(0),
+    createdBy: text("created_by").references(() => user.id, { onDelete: "set null" }),
+    updatedBy: text("updated_by").references(() => user.id, { onDelete: "set null" }),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+    searchVector: tsvector("search_vector").generatedAlwaysAs(
+      (): SQL =>
+        sql`setweight(to_tsvector('simple', coalesce(${page.title}, '')), 'A') || setweight(to_tsvector('simple', coalesce(${page.contentText}, '')), 'B')`,
+    ),
+  },
+  (t) => [index("page_ws_idx").on(t.workspaceId, t.projectId), index("page_search_idx").using("gin", t.searchVector)],
+);
+
+/** Issues mentioned (by key) inside a page; rebuilt whenever the page is saved. */
+export const pageIssue = pgTable(
+  "page_issue",
+  {
+    pageId: uuid("page_id")
+      .notNull()
+      .references(() => page.id, { onDelete: "cascade" }),
+    issueId: uuid("issue_id")
+      .notNull()
+      .references(() => issue.id, { onDelete: "cascade" }),
+  },
+  (t) => [primaryKey({ columns: [t.pageId, t.issueId] }), index("page_issue_issue_idx").on(t.issueId)],
+);
+
+/** Projects a guest may see. Guests without rows here see no projects. */
+export const projectAccess = pgTable(
+  "project_access",
+  {
+    projectId: uuid("project_id")
+      .notNull()
+      .references(() => project.id, { onDelete: "cascade" }),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+  },
+  (t) => [primaryKey({ columns: [t.projectId, t.userId] }), index("project_access_user_idx").on(t.userId)],
+);
+
+export const userPreference = pgTable("user_preference", {
+  userId: text("user_id")
+    .primaryKey()
+    .references(() => user.id, { onDelete: "cascade" }),
+  locale: text("locale").notNull().default("en"),
+  emailDigest: boolean("email_digest").notNull().default(true),
+  lastDigestAt: timestamp("last_digest_at", { withTimezone: true }),
+});
