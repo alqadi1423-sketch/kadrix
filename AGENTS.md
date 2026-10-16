@@ -3,10 +3,18 @@
 Read this before changing code. These rules exist because agents skip
 production concerns unless they are written down and tested.
 
+Also read: [docs/DECISIONS.md](docs/DECISIONS.md) (what is decided and why),
+[docs/ROADMAP.md](docs/ROADMAP.md) (what is done and what is next) and
+[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) (how the pieces fit).
+Product decisions belong to the project owner: propose, don't decide.
+Update the roadmap status in the same commit that finishes a phase item.
+
 ## Non-negotiables
 
 1. **Tenancy.** Every table holding workspace data has a `workspace_id`
    column, and every query on it filters by the caller's workspace.
+   Project-scoped reads also respect guest access: pass the membership
+   (not just the workspace id) to query helpers, and use `seesProject`.
 2. **Authorization.** All permission decisions go through `can()` /
    `canManageRole()` in `packages/core/src/permissions.ts`. Never compare
    roles inline. New actions must be added to the matrix test.
