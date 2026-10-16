@@ -27,6 +27,8 @@ jobs:
         with:
           fetch-depth: 0
       - id: v
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           if [[ "$GITHUB_REF" == refs/tags/v* ]]; then
             version="${GITHUB_REF_NAME#v}"
@@ -35,7 +37,14 @@ jobs:
           version=$(sed -n 's/.*VERSION = "\(.*\)".*/\1/p' apps/server/src/version.ts)
           echo "version=$version" >> "$GITHUB_OUTPUT"
           if git rev-parse -q --verify "refs/tags/v$version" >/dev/null; then
-            echo "v$version already released"; echo "release=false" >> "$GITHUB_OUTPUT"; exit 0
+            # Tagged before: release again only if the GitHub release is missing
+            # (for example when an earlier run was stopped).
+            if gh release view "v$version" >/dev/null 2>&1; then
+              echo "v$version already released"; echo "release=false" >> "$GITHUB_OUTPUT"
+            else
+              echo "release=true" >> "$GITHUB_OUTPUT"
+            fi
+            exit 0
           fi
           if ! grep -q "^## \[$version\]" CHANGELOG.md; then
             echo "No CHANGELOG section for $version yet"; echo "release=false" >> "$GITHUB_OUTPUT"; exit 0
@@ -46,15 +55,58 @@ jobs:
           git push origin "v$version"
           echo "release=true" >> "$GITHUB_OUTPUT"
 
-  image:
+  # Each architecture builds on its own native runner (no emulation), then
+  # the two are joined into one multi-arch image.
+  build:
     needs: prepare
     if: needs.prepare.outputs.release == 'true'
-    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - platform: linux/amd64
+            runner: ubuntu-24.04
+          - platform: linux/arm64
+            runner: ubuntu-24.04-arm
+    runs-on: ${{ matrix.runner }}
     steps:
       - uses: actions/checkout@v4
         with:
           ref: v${{ needs.prepare.outputs.version }}
-      - uses: docker/setup-qemu-action@v3
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - id: push
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          platforms: ${{ matrix.platform }}
+          outputs: type=image,name=ghcr.io/${{ github.repository }},push-by-digest=true,name-canonical=true,push=true
+          provenance: false
+          cache-from: type=gha,scope=${{ matrix.platform }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.platform }}
+      - name: Keep the digest
+        run: |
+          mkdir -p /tmp/digests
+          d="${{ steps.push.outputs.digest }}"
+          touch "/tmp/digests/${d#sha256:}"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: digest-${{ matrix.runner }}
+          path: /tmp/digests/*
+          retention-days: 1
+
+  image:
+    needs: [prepare, build]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: digest-*
+          path: /tmp/digests
+          merge-multiple: true
       - uses: docker/setup-buildx-action@v3
       - uses: docker/login-action@v3
         with:
@@ -69,27 +121,18 @@ jobs:
             type=semver,pattern={{version}},value=v${{ needs.prepare.outputs.version }}
             type=semver,pattern={{major}}.{{minor}},value=v${{ needs.prepare.outputs.version }}
             type=raw,value=latest,enable=${{ !contains(needs.prepare.outputs.version, '-') }}
-          labels: |
-            org.opencontainers.image.title=Kadrix
-            org.opencontainers.image.description=Open-source project management for tech teams, in Arabic and English
-            org.opencontainers.image.licenses=AGPL-3.0-or-later
-      - id: push
-        uses: docker/build-push-action@v6
-        with:
-          context: .
-          platforms: linux/amd64,linux/arm64
-          push: true
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
-          provenance: true
-          sbom: true
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-      - uses: actions/attest-build-provenance@v2
-        with:
-          subject-name: ghcr.io/${{ github.repository }}
-          subject-digest: ${{ steps.push.outputs.digest }}
-          push-to-registry: true
+      - name: Join both architectures under the version tags
+        working-directory: /tmp/digests
+        run: |
+          image="ghcr.io/${{ github.repository }}"
+          docker buildx imagetools create \
+            $(jq -cr '.tags | map("-t " + .) | join(" ")' <<< "$DOCKER_METADATA_OUTPUT_JSON") \
+            --annotation "index:org.opencontainers.image.title=Kadrix" \
+            --annotation "index:org.opencontainers.image.description=Open-source project management for tech teams, in Arabic and English" \
+            --annotation "index:org.opencontainers.image.licenses=AGPL-3.0-or-later" \
+            --annotation "index:org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}" \
+            $(printf "$image@sha256:%s " *)
+          docker buildx imagetools inspect "$image:${{ needs.prepare.outputs.version }}"
 
   notes:
     needs: [prepare, image]

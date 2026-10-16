@@ -11,6 +11,7 @@ marked **Upgrade note**.
 The first public version, built in internal phases (see
 [docs/ROADMAP.md](docs/ROADMAP.md)). Install with Docker:
 `docker compose up -d` (see [docs/en/install.md](docs/en/install.md)).
+Images for amd64 and arm64 servers.
 
 ### Added
 - Workspaces, projects, issues with keys, workflow states, labels, priorities,
