@@ -9,7 +9,8 @@ marked **Upgrade note**.
 ## [0.1.0] - 2026-10-16
 
 The first public version, built in internal phases (see
-[docs/ROADMAP.md](docs/ROADMAP.md)).
+[docs/ROADMAP.md](docs/ROADMAP.md)). Install with Docker:
+`docker compose up -d` (see [docs/en/install.md](docs/en/install.md)).
 
 ### Added
 - Workspaces, projects, issues with keys, workflow states, labels, priorities,
