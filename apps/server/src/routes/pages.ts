@@ -130,6 +130,7 @@ export function pageRoutes(deps: AppDeps) {
       .innerJoin(issue, eq(issue.id, pageIssue.issueId))
       .innerJoin(project, eq(project.id, issue.projectId))
       .where(eq(pageIssue.pageId, p.id));
+    const [editor] = p.updatedBy ? await db.select({ name: user.name }).from(user).where(eq(user.id, p.updatedBy)) : [];
     return c.json({
       page: {
         id: p.id,
@@ -138,6 +139,7 @@ export function pageRoutes(deps: AppDeps) {
         parentId: p.parentId,
         contentText: p.contentText,
         updatedAt: p.updatedAt,
+        updatedByName: editor?.name ?? null,
       },
       issues: linked.filter((i) => seesProject(m, i.projectId)).map((i) => ({ ...i, key: `${i.projectKey}-${i.number}` })),
     });

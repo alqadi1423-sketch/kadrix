@@ -11,7 +11,8 @@ Status: ✅ done · 🔨 in progress · ⏳ not started
 | 1 | Work model | ✅ |
 | 2 | Methodology tracks | ✅ |
 | 3 | Developer integration | ✅ |
-| 4 | Docs and collaboration | 🔨 |
+| 4 | Docs and collaboration | ✅ |
+| 4.5 | External review fixes | ✅ |
 | 5 | Reports, automation, import | ⏳ |
 | 6 | Future paths: agents, AI, mobile, cloud | ⏳ |
 | 7 | Launch readiness | ⏳ |
@@ -40,12 +41,18 @@ API tokens, OpenAPI document, signed webhooks with retries and SSRF
 protection, GitHub and GitLab linking that moves issues through the
 pull request lifecycle, releases and changelogs, rate limiting.
 
-## 4. Docs and collaboration 🔨
-- ✅ Guests limited to the projects they are given
-- ✅ Pages with live co-editing (Yjs), search and issue mentions (backend)
-- ✅ Slack and Discord messages, daily email digest (backend)
-- ⏳ Docs editor in the web app (Tiptap), presence cursors, Arabic direction per paragraph
-- ⏳ Guest project picker, preferences screen, chat webhook options in the UI
+## 4. Docs and collaboration ✅
+Pages per project or workspace in a tree, live co-editing (Yjs and
+Tiptap) with presence cursors and per-paragraph Arabic or English
+direction, search, issue keys in a page linking both ways. Guests limited
+to the projects they are given, with a picker in settings. Slack and
+Discord messages, daily email digest in each person's language,
+preferences screen.
+
+## 4.5 External review fixes ✅
+Passwords per NIST SP 800-63B-4, credential rate limit, real client
+address behind a trusted proxy, atomic bulk edits, browser tests (RTL,
+live board, co-editing) in CI.
 
 ## 5. Reports, automation, import ⏳
 Dashboards (velocity, cycle and lead time, cumulative flow, workload),
@@ -60,6 +67,6 @@ packages ready for a mobile app, installable PWA, edition flags for the
 cloud.
 
 ## 7. Launch readiness ⏳
-Security review, upgrade path and versioned releases, images on GHCR,
+Security review, two-step sign-in (TOTP), upgrade path and versioned releases, images on GHCR,
 bilingual docs including installing without Docker, README as a landing
 page with screenshots, CLA check on pull requests, trademark policy.

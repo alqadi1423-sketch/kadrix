@@ -155,7 +155,8 @@ function PageView({
       />
       <div className="flex flex-wrap items-center gap-3 text-xs text-muted">
         <span>
-          {p.updatedByName} · {fmt.format(new Date(p.updatedAt))}
+          {p.updatedByName ? `${p.updatedByName} · ` : ""}
+          {fmt.format(new Date(p.updatedAt))}
         </span>
         {canEdit && (
           <>
