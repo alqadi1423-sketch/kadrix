@@ -21,8 +21,8 @@
   <img src="docs/screenshots/board-ar.png" alt="A project board in Arabic, right to left">
 </p>
 
-> **Status:** not released yet. Everything below works and is tested, and the
-> first public version is being prepared. Expect changes until 1.0.
+> **Status:** first public version (0.1.0). Everything below works and is
+> tested; expect changes until 1.0.
 
 ## Why Kadrix
 

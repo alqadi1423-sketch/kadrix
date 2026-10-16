@@ -83,7 +83,6 @@ configuration, agents and API docs in Arabic and English, including
 installing without Docker. README landing pages in both languages with
 screenshots. CLA check on pull requests. Trademark and security policies.
 
-## Before the first public release
-Owner decisions, not code: final name check (trademark search), the
-version number to tag, and when to announce. Tagging `v0.1.0` (or any
-version) runs the release workflow.
+## Released
+- 0.1.0 (2026-10-16): first public version. Still open for the owner: the
+  repository rename to `kadrix` and when to announce.

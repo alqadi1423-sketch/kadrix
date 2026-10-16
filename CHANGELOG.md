@@ -6,6 +6,8 @@ marked **Upgrade note**.
 
 ## [Unreleased]
 
+## [0.1.0] - 2026-10-16
+
 The first public version, built in internal phases (see
 [docs/ROADMAP.md](docs/ROADMAP.md)).
 
