@@ -19,7 +19,8 @@ test("two people edit one page at the same time, and issue keys link both ways",
 
   await editorA.click();
   await a.page.keyboard.type("نبدأ بإصلاح WEB-1 قبل الإطلاق");
-  await expect(editorB).toContainText("نبدأ بإصلاح WEB-1", { timeout: 10_000 });
+  // Wait for the whole sentence so B does not type while A's text is still arriving.
+  await expect(editorB).toContainText("نبدأ بإصلاح WEB-1 قبل الإطلاق", { timeout: 10_000 });
 
   await editorB.click();
   // Go to the very end of the document before adding a paragraph.
@@ -30,7 +31,7 @@ test("two people edit one page at the same time, and issue keys link both ways",
 
   // Each block picks its own direction.
   const dirOf = (text: string) => editorA.locator("p", { hasText: text }).first().evaluate((p) => getComputedStyle(p).direction);
-  expect(await dirOf("نبدأ بإصلاح")).toBe("rtl");
+  expect(await dirOf("نبدأ بإصلاح"), await editorA.innerHTML()).toBe("rtl");
   expect(await dirOf("English line")).toBe("ltr");
 
   // The page is stored and the issue it mentions knows about it.
