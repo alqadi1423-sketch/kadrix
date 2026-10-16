@@ -22,7 +22,8 @@ test("two people edit one page at the same time, and issue keys link both ways",
   await expect(editorB).toContainText("نبدأ بإصلاح WEB-1", { timeout: 10_000 });
 
   await editorB.click();
-  await b.page.keyboard.press("End");
+  // Go to the very end of the document before adding a paragraph.
+  await b.page.keyboard.press("Control+End");
   await b.page.keyboard.press("Enter");
   await b.page.keyboard.type("English line");
   await expect(editorA).toContainText("English line", { timeout: 10_000 });
