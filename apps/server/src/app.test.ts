@@ -1,46 +1,13 @@
-import { createDb, runMigrations } from "@veloq/db";
 import { sql } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
-import { createApp } from "./app.js";
-import { createAuth } from "./auth.js";
+import { setupTestApp } from "./test-utils.js";
 
-const url = process.env.TEST_DATABASE_URL;
-if (!url) throw new Error("TEST_DATABASE_URL is required for server tests");
+const t = setupTestApp();
+const { app, db, signUp } = t;
 
-const BASE = "http://localhost:3000";
-const { db, client } = createDb(url);
-const auth = createAuth(db, { secret: "test-secret-test-secret-test-secret!!", baseUrl: BASE });
-const app = createApp({ db, auth, edition: "self-hosted" });
-
-beforeAll(async () => {
-  await runMigrations(url);
-});
-afterAll(async () => {
-  await client.end();
-});
-beforeEach(async () => {
-  await db.execute(sql`TRUNCATE "user", workspace CASCADE`);
-});
-
-/** A signed-in test user with a cookie-carrying request helper. */
-async function signUp(name: string) {
-  const email = `${name.toLowerCase()}@example.com`;
-  const res = await app.request("/api/auth/sign-up/email", {
-    method: "POST",
-    headers: { "content-type": "application/json", origin: BASE },
-    body: JSON.stringify({ name, email, password: "correct-horse-battery" }),
-  });
-  expect(res.status).toBe(200);
-  const cookie = res.headers.get("set-cookie")?.split(";")[0] ?? "";
-  const call = (method: string, path: string, body?: unknown) =>
-    app.request(`/api${path}`, {
-      method,
-      headers: { cookie, origin: BASE, ...(body ? { "content-type": "application/json" } : {}) },
-      body: body ? JSON.stringify(body) : undefined,
-    });
-  const { user } = (await (await call("GET", "/me")).json()) as { user: { id: string } };
-  return { email, id: user.id, call };
-}
+beforeAll(() => t.migrate());
+afterAll(() => t.close());
+beforeEach(() => t.reset());
 
 async function setupWorkspace() {
   const owner = await signUp("Owner");

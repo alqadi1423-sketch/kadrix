@@ -8,6 +8,9 @@ export interface Config {
   edition: Edition;
   /** Directory with the built web app to serve, if any. */
   webDist: string | null;
+  /** Where uploaded files are stored. */
+  dataDir: string;
+  githubWebhookSecret: string | null;
 }
 
 export function loadConfig(env = process.env): Config {
@@ -24,5 +27,7 @@ export function loadConfig(env = process.env): Config {
     port: Number(env.PORT ?? 3000),
     edition: parseEdition(env.VELOQ_EDITION),
     webDist: env.WEB_DIST ?? null,
+    dataDir: env.DATA_DIR ?? "./data",
+    githubWebhookSecret: env.GITHUB_WEBHOOK_SECRET || null,
   };
 }

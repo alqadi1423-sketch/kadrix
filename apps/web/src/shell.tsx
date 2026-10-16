@@ -37,7 +37,8 @@ export function Brand() {
   );
 }
 
-export function Shell({ children, signedIn }: { children: ReactNode; signedIn: boolean }) {
+/** Frame for pages outside a workspace (the workspace picker). */
+export function Shell({ children }: { children: ReactNode }) {
   const { t } = useTranslation();
   return (
     <div className="min-h-dvh">
@@ -48,14 +49,12 @@ export function Shell({ children, signedIn }: { children: ReactNode; signedIn: b
           </Link>
           <div className="flex items-center gap-3">
             <LanguageSwitch />
-            {signedIn && (
-              <button
-                className="text-sm text-muted hover:text-ink"
-                onClick={() => authClient.signOut().then(() => window.location.assign("/"))}
-              >
-                {t("common.signOut")}
-              </button>
-            )}
+            <button
+              className="text-sm text-muted hover:text-ink"
+              onClick={() => authClient.signOut().then(() => window.location.assign("/"))}
+            >
+              {t("common.signOut")}
+            </button>
           </div>
         </div>
       </header>

@@ -15,22 +15,56 @@ export const ACTIONS = [
   "member.updateRole",
   "member.remove",
   "audit.read",
+  "project.create",
+  "project.update",
+  "project.delete",
+  "workflow.manage",
+  "label.manage",
+  "issue.read",
+  "issue.create",
+  "issue.update",
+  "issue.delete",
+  "comment.create",
+  "view.manage",
+  "integration.manage",
+  "token.manage",
+  "webhook.manage",
 ] as const;
 export type Action = (typeof ACTIONS)[number];
 
+const GUEST: readonly Action[] = ["workspace.read", "issue.read", "comment.create"];
+
+const MEMBER: readonly Action[] = [
+  ...GUEST,
+  "member.read",
+  "project.create",
+  "issue.create",
+  "issue.update",
+  "view.manage",
+  "token.manage",
+];
+
+const ADMIN: readonly Action[] = [
+  ...MEMBER,
+  "workspace.update",
+  "member.invite",
+  "member.updateRole",
+  "member.remove",
+  "audit.read",
+  "project.update",
+  "project.delete",
+  "workflow.manage",
+  "label.manage",
+  "issue.delete",
+  "integration.manage",
+  "webhook.manage",
+];
+
 const MATRIX: Record<Role, readonly Action[]> = {
   owner: ACTIONS,
-  admin: [
-    "workspace.read",
-    "workspace.update",
-    "member.read",
-    "member.invite",
-    "member.updateRole",
-    "member.remove",
-    "audit.read",
-  ],
-  member: ["workspace.read", "member.read"],
-  guest: ["workspace.read"],
+  admin: ADMIN,
+  member: MEMBER,
+  guest: GUEST,
 };
 
 export function can(role: Role | null | undefined, action: Action): boolean {

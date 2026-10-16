@@ -1,21 +1,38 @@
 import { describe, expect, it } from "vitest";
 import { ACTIONS, ROLES, can, canManageRole, type Action, type Role } from "./permissions.js";
 
-// The full expected matrix. Changing a permission means changing this table
-// on purpose, so every role/action pair is reviewed explicitly.
+// The full expected matrix, written out by hand. Changing a permission means
+// changing this table on purpose, so every role/action pair is reviewed.
+const GUEST: Action[] = ["workspace.read", "issue.read", "comment.create"];
+const MEMBER: Action[] = [
+  ...GUEST,
+  "member.read",
+  "project.create",
+  "issue.create",
+  "issue.update",
+  "view.manage",
+  "token.manage",
+];
+const ADMIN: Action[] = [
+  ...MEMBER,
+  "workspace.update",
+  "member.invite",
+  "member.updateRole",
+  "member.remove",
+  "audit.read",
+  "project.update",
+  "project.delete",
+  "workflow.manage",
+  "label.manage",
+  "issue.delete",
+  "integration.manage",
+  "webhook.manage",
+];
 const EXPECTED: Record<Role, Action[]> = {
   owner: [...ACTIONS],
-  admin: [
-    "workspace.read",
-    "workspace.update",
-    "member.read",
-    "member.invite",
-    "member.updateRole",
-    "member.remove",
-    "audit.read",
-  ],
-  member: ["workspace.read", "member.read"],
-  guest: ["workspace.read"],
+  admin: ADMIN,
+  member: MEMBER,
+  guest: GUEST,
 };
 
 describe("permission matrix", () => {
@@ -27,6 +44,10 @@ describe("permission matrix", () => {
       });
     }
   }
+
+  it("only owners can delete a workspace", () => {
+    expect(ROLES.filter((r) => can(r, "workspace.delete"))).toEqual(["owner"]);
+  });
 
   it("denies everything without a role", () => {
     for (const action of ACTIONS) expect(can(null, action)).toBe(false);

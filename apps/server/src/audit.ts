@@ -2,9 +2,18 @@ import { auditLog, type Database } from "@veloq/db";
 
 export type AuditAction =
   | "workspace.created"
+  | "workspace.renamed"
   | "member.added"
   | "member.roleChanged"
-  | "member.removed";
+  | "member.removed"
+  | "project.created"
+  | "project.deleted"
+  | "token.created"
+  | "token.revoked"
+  | "webhook.created"
+  | "webhook.deleted"
+  | "integration.connected"
+  | "integration.disconnected";
 
 type Tx = Parameters<Parameters<Database["transaction"]>[0]>[0];
 

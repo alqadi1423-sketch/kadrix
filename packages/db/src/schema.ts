@@ -1,16 +1,26 @@
-import { ROLES } from "@veloq/core";
-import { sql } from "drizzle-orm";
+import { ISSUE_TYPES, RELATION_TYPES, ROLES, STATE_CATEGORIES, VIEW_LAYOUTS } from "@veloq/core";
+import { sql, type SQL } from "drizzle-orm";
 import {
   boolean,
+  customType,
+  date,
+  doublePrecision,
   index,
+  integer,
   jsonb,
   pgEnum,
   pgTable,
   primaryKey,
+  real,
+  smallint,
   text,
   timestamp,
+  uniqueIndex,
   uuid,
+  type AnyPgColumn,
 } from "drizzle-orm/pg-core";
+
+const tsvector = customType<{ data: string }>({ dataType: () => "tsvector" });
 
 const createdAt = () => timestamp("created_at", { withTimezone: true }).notNull().defaultNow();
 const updatedAt = () =>
@@ -129,4 +139,302 @@ export const auditLog = pgTable(
     createdAt: createdAt(),
   },
   (t) => [index("audit_workspace_created_idx").on(t.workspaceId, t.createdAt)],
+);
+
+/* ------------------------------------------------------------------ */
+/* Work model                                                         */
+/* ------------------------------------------------------------------ */
+
+export const stateCategoryEnum = pgEnum("state_category", STATE_CATEGORIES);
+export const issueTypeEnum = pgEnum("issue_type", ISSUE_TYPES);
+export const relationTypeEnum = pgEnum("relation_type", RELATION_TYPES);
+export const viewLayoutEnum = pgEnum("view_layout", VIEW_LAYOUTS);
+
+const wsRef = () =>
+  uuid("workspace_id")
+    .notNull()
+    .references(() => workspace.id, { onDelete: "cascade" });
+
+export const project = pgTable(
+  "project",
+  {
+    id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+    workspaceId: wsRef(),
+    key: text("key").notNull(),
+    name: text("name").notNull(),
+    description: text("description"),
+    /** Last issue number handed out; bumped atomically on issue creation. */
+    issueCounter: integer("issue_counter").notNull().default(0),
+    archivedAt: timestamp("archived_at", { withTimezone: true }),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+  },
+  (t) => [uniqueIndex("project_ws_key_uq").on(t.workspaceId, t.key)],
+);
+
+export const workflowState = pgTable(
+  "workflow_state",
+  {
+    id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+    workspaceId: wsRef(),
+    projectId: uuid("project_id")
+      .notNull()
+      .references(() => project.id, { onDelete: "cascade" }),
+    name: text("name").notNull(),
+    category: stateCategoryEnum("category").notNull(),
+    color: text("color").notNull(),
+    position: doublePrecision("position").notNull(),
+    /** Kanban work-in-progress limit; the board warns when exceeded. */
+    wipLimit: integer("wip_limit"),
+    createdAt: createdAt(),
+  },
+  (t) => [index("state_project_idx").on(t.projectId, t.position)],
+);
+
+export const label = pgTable(
+  "label",
+  {
+    id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+    workspaceId: wsRef(),
+    name: text("name").notNull(),
+    color: text("color").notNull(),
+    createdAt: createdAt(),
+  },
+  (t) => [uniqueIndex("label_ws_name_uq").on(t.workspaceId, t.name)],
+);
+
+export const cycle = pgTable(
+  "cycle",
+  {
+    id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+    workspaceId: wsRef(),
+    projectId: uuid("project_id")
+      .notNull()
+      .references(() => project.id, { onDelete: "cascade" }),
+    number: integer("number").notNull(),
+    name: text("name"),
+    startsOn: date("starts_on").notNull(),
+    endsOn: date("ends_on").notNull(),
+    /** Set when the cycle is closed and unfinished work rolled over. */
+    completedAt: timestamp("completed_at", { withTimezone: true }),
+    createdAt: createdAt(),
+  },
+  (t) => [uniqueIndex("cycle_project_number_uq").on(t.projectId, t.number)],
+);
+
+export const milestone = pgTable(
+  "milestone",
+  {
+    id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+    workspaceId: wsRef(),
+    projectId: uuid("project_id")
+      .notNull()
+      .references(() => project.id, { onDelete: "cascade" }),
+    name: text("name").notNull(),
+    description: text("description"),
+    targetDate: date("target_date"),
+    createdAt: createdAt(),
+  },
+  (t) => [index("milestone_project_idx").on(t.projectId)],
+);
+
+export const issue = pgTable(
+  "issue",
+  {
+    id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+    workspaceId: wsRef(),
+    projectId: uuid("project_id")
+      .notNull()
+      .references(() => project.id, { onDelete: "cascade" }),
+    number: integer("number").notNull(),
+    type: issueTypeEnum("type").notNull().default("task"),
+    title: text("title").notNull(),
+    description: text("description"),
+    stateId: uuid("state_id")
+      .notNull()
+      .references(() => workflowState.id),
+    priority: smallint("priority").notNull().default(0),
+    assigneeId: text("assignee_id").references(() => user.id, { onDelete: "set null" }),
+    creatorId: text("creator_id").references(() => user.id, { onDelete: "set null" }),
+    parentId: uuid("parent_id").references((): AnyPgColumn => issue.id, { onDelete: "set null" }),
+    cycleId: uuid("cycle_id").references(() => cycle.id, { onDelete: "set null" }),
+    milestoneId: uuid("milestone_id").references(() => milestone.id, { onDelete: "set null" }),
+    estimate: real("estimate"),
+    startDate: date("start_date"),
+    dueDate: date("due_date"),
+    sortOrder: doublePrecision("sort_order").notNull().default(0),
+    completedAt: timestamp("completed_at", { withTimezone: true }),
+    canceledAt: timestamp("canceled_at", { withTimezone: true }),
+    /** 'simple' config: language-neutral, works for Arabic and English text. */
+    searchVector: tsvector("search_vector").generatedAlwaysAs(
+      (): SQL =>
+        sql`setweight(to_tsvector('simple', coalesce(${issue.title}, '')), 'A') || setweight(to_tsvector('simple', coalesce(${issue.description}, '')), 'B')`,
+    ),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+  },
+  (t) => [
+    uniqueIndex("issue_project_number_uq").on(t.projectId, t.number),
+    index("issue_ws_state_idx").on(t.workspaceId, t.stateId),
+    index("issue_assignee_idx").on(t.workspaceId, t.assigneeId),
+    index("issue_parent_idx").on(t.parentId),
+    index("issue_cycle_idx").on(t.cycleId),
+    index("issue_search_idx").using("gin", t.searchVector),
+    index("issue_title_trgm_idx").using("gin", sql`${t.title} gin_trgm_ops`),
+  ],
+);
+
+export const issueLabel = pgTable(
+  "issue_label",
+  {
+    issueId: uuid("issue_id")
+      .notNull()
+      .references(() => issue.id, { onDelete: "cascade" }),
+    labelId: uuid("label_id")
+      .notNull()
+      .references(() => label.id, { onDelete: "cascade" }),
+  },
+  (t) => [primaryKey({ columns: [t.issueId, t.labelId] })],
+);
+
+export const issueRelation = pgTable(
+  "issue_relation",
+  {
+    id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+    workspaceId: wsRef(),
+    type: relationTypeEnum("type").notNull(),
+    /** For "blocks": issueId blocks relatedIssueId. */
+    issueId: uuid("issue_id")
+      .notNull()
+      .references(() => issue.id, { onDelete: "cascade" }),
+    relatedIssueId: uuid("related_issue_id")
+      .notNull()
+      .references(() => issue.id, { onDelete: "cascade" }),
+    createdAt: createdAt(),
+  },
+  (t) => [uniqueIndex("relation_uq").on(t.issueId, t.relatedIssueId, t.type)],
+);
+
+/**
+ * Every state change with its time. Cycle time, lead time, burndown and
+ * cumulative flow are computed from this table, so it must be written on
+ * every state change, including the initial state at creation.
+ */
+export const issueTransition = pgTable(
+  "issue_transition",
+  {
+    id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+    workspaceId: wsRef(),
+    issueId: uuid("issue_id")
+      .notNull()
+      .references(() => issue.id, { onDelete: "cascade" }),
+    fromStateId: uuid("from_state_id").references(() => workflowState.id, { onDelete: "set null" }),
+    toStateId: uuid("to_state_id")
+      .notNull()
+      .references(() => workflowState.id, { onDelete: "cascade" }),
+    fromCategory: stateCategoryEnum("from_category"),
+    toCategory: stateCategoryEnum("to_category").notNull(),
+    actorId: text("actor_id").references(() => user.id, { onDelete: "set null" }),
+    at: timestamp("at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index("transition_issue_idx").on(t.issueId, t.at), index("transition_ws_at_idx").on(t.workspaceId, t.at)],
+);
+
+/** Field-level history shown in the issue activity feed. */
+export const issueActivity = pgTable(
+  "issue_activity",
+  {
+    id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+    workspaceId: wsRef(),
+    issueId: uuid("issue_id")
+      .notNull()
+      .references(() => issue.id, { onDelete: "cascade" }),
+    actorId: text("actor_id").references(() => user.id, { onDelete: "set null" }),
+    field: text("field").notNull(),
+    fromValue: jsonb("from_value"),
+    toValue: jsonb("to_value"),
+    createdAt: createdAt(),
+  },
+  (t) => [index("activity_issue_idx").on(t.issueId, t.createdAt)],
+);
+
+export const comment = pgTable(
+  "comment",
+  {
+    id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+    workspaceId: wsRef(),
+    issueId: uuid("issue_id")
+      .notNull()
+      .references(() => issue.id, { onDelete: "cascade" }),
+    authorId: text("author_id").references(() => user.id, { onDelete: "set null" }),
+    body: text("body").notNull(),
+    editedAt: timestamp("edited_at", { withTimezone: true }),
+    createdAt: createdAt(),
+  },
+  (t) => [index("comment_issue_idx").on(t.issueId, t.createdAt)],
+);
+
+export const attachment = pgTable(
+  "attachment",
+  {
+    id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+    workspaceId: wsRef(),
+    issueId: uuid("issue_id").references(() => issue.id, { onDelete: "cascade" }),
+    uploaderId: text("uploader_id").references(() => user.id, { onDelete: "set null" }),
+    fileName: text("file_name").notNull(),
+    contentType: text("content_type").notNull(),
+    size: integer("size").notNull(),
+    storageKey: text("storage_key").notNull(),
+    createdAt: createdAt(),
+  },
+  (t) => [index("attachment_issue_idx").on(t.issueId)],
+);
+
+export const issueSubscriber = pgTable(
+  "issue_subscriber",
+  {
+    issueId: uuid("issue_id")
+      .notNull()
+      .references(() => issue.id, { onDelete: "cascade" }),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+  },
+  (t) => [primaryKey({ columns: [t.issueId, t.userId] })],
+);
+
+export const notification = pgTable(
+  "notification",
+  {
+    id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+    workspaceId: wsRef(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    actorId: text("actor_id").references(() => user.id, { onDelete: "set null" }),
+    issueId: uuid("issue_id").references(() => issue.id, { onDelete: "cascade" }),
+    /** assigned | mentioned | commented | stateChanged */
+    kind: text("kind").notNull(),
+    data: jsonb("data").$type<Record<string, unknown>>().notNull().default({}),
+    readAt: timestamp("read_at", { withTimezone: true }),
+    createdAt: createdAt(),
+  },
+  (t) => [index("notification_user_idx").on(t.userId, t.createdAt)],
+);
+
+export const savedView = pgTable(
+  "saved_view",
+  {
+    id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+    workspaceId: wsRef(),
+    ownerId: text("owner_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    name: text("name").notNull(),
+    layout: viewLayoutEnum("layout").notNull(),
+    filter: jsonb("filter").$type<Record<string, unknown>>().notNull(),
+    shared: boolean("shared").notNull().default(false),
+    createdAt: createdAt(),
+  },
+  (t) => [index("view_ws_idx").on(t.workspaceId)],
 );
