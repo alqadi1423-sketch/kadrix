@@ -11,6 +11,7 @@ import {
   milestone,
   notification,
   project,
+  projectAccess,
   workflowState,
   workspaceMember,
   type Database,
@@ -36,6 +37,8 @@ export interface IssueContext {
   source?: string | null;
   /** How many automation rules led to this change; bounds rule chains. */
   depth?: number;
+  /** Rule runs left for everything one change sets off (shared, mutable). */
+  budget?: { left: number };
 }
 
 export interface AutomationTriggerEvent {
@@ -91,12 +94,14 @@ async function issuePayload(tx: Tx, issueId: string) {
 
 /* ---------------------------- validation ---------------------------- */
 
-async function assertMember(db: Db, workspaceId: string, userId: string) {
+/** The user must be a member who can see the project (guests only see theirs). */
+async function assertMember(db: Db, workspaceId: string, userId: string, projectId: string) {
   const [m] = await db
-    .select({ userId: workspaceMember.userId })
+    .select({ role: workspaceMember.role, granted: projectAccess.projectId })
     .from(workspaceMember)
+    .leftJoin(projectAccess, and(eq(projectAccess.userId, workspaceMember.userId), eq(projectAccess.projectId, projectId)))
     .where(and(eq(workspaceMember.workspaceId, workspaceId), eq(workspaceMember.userId, userId)));
-  if (!m) throw invalid();
+  if (!m || (m.role === "guest" && !m.granted)) throw invalid();
 }
 
 async function stateInProject(db: Db, projectId: string, stateId: string) {
@@ -218,7 +223,7 @@ export async function createIssue(ctx: IssueContext, input: CreateInput) {
     if (proj.archivedAt) throw invalid();
 
     const state = input.stateId ? await stateInProject(tx, proj.id, input.stateId) : await defaultState(tx, proj.id);
-    if (input.assigneeId) await assertMember(tx, ctx.workspaceId, input.assigneeId);
+    if (input.assigneeId) await assertMember(tx, ctx.workspaceId, input.assigneeId, proj.id);
     if (input.parentId) await assertParent(tx, ctx.workspaceId, input.parentId);
     if (input.cycleId) await assertSameProject(tx, cycle, input.cycleId, proj.id);
     if (input.milestoneId) await assertSameProject(tx, milestone, input.milestoneId, proj.id);
@@ -293,11 +298,16 @@ export async function createIssue(ctx: IssueContext, input: CreateInput) {
 
 async function notifyMentions(tx: Tx, outbox: Outbox, ctx: IssueContext, issueId: string, userIds: string[]) {
   if (userIds.length === 0) return;
-  // Only real members of this workspace can be mentioned.
-  const members = await tx
-    .select({ userId: workspaceMember.userId })
-    .from(workspaceMember)
-    .where(and(eq(workspaceMember.workspaceId, ctx.workspaceId), inArray(workspaceMember.userId, userIds)));
+  // Only members who can see this issue are told about it: guests outside
+  // its project are skipped, so a mention never leaks a hidden title.
+  const [it] = await tx.select({ projectId: issue.projectId }).from(issue).where(eq(issue.id, issueId));
+  const members = (
+    await tx
+      .select({ userId: workspaceMember.userId, role: workspaceMember.role, granted: projectAccess.projectId })
+      .from(workspaceMember)
+      .leftJoin(projectAccess, and(eq(projectAccess.userId, workspaceMember.userId), eq(projectAccess.projectId, it?.projectId ?? sql`null`)))
+      .where(and(eq(workspaceMember.workspaceId, ctx.workspaceId), inArray(workspaceMember.userId, userIds)))
+  ).filter((x) => x.role !== "guest" || x.granted);
   await notify(tx, outbox, {
     workspaceId: ctx.workspaceId,
     issueId,
@@ -352,7 +362,7 @@ async function updateIssueIn(tx: Tx, outbox: Outbox, ctx: IssueContext, issueId:
       .for("update");
     if (!cur) throw notFound();
 
-    if (input.assigneeId) await assertMember(tx, ctx.workspaceId, input.assigneeId);
+    if (input.assigneeId) await assertMember(tx, ctx.workspaceId, input.assigneeId, cur.projectId);
     if (input.parentId) await assertParent(tx, ctx.workspaceId, input.parentId, cur.id);
     if (input.cycleId) await assertSameProject(tx, cycle, input.cycleId, cur.projectId);
     if (input.milestoneId) await assertSameProject(tx, milestone, input.milestoneId, cur.projectId);

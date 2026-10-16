@@ -357,6 +357,8 @@ export function planningRoutes(deps: AppDeps) {
 
   app.get("/workspaces/:slug/initiatives", guard("issue.read"), async (c) => {
     const m = c.get("membership");
+    // Guests see counts and project lists only for their own projects.
+    const guestOnly = m.projectIds ? sql` and ${m.projectIds.length ? inArray(sql`i.project_id`, m.projectIds) : sql`false`}` : sql``;
     const rows = await db
       .select({
         id: initiative.id,
@@ -366,8 +368,8 @@ export function planningRoutes(deps: AppDeps) {
         ownerName: user.name,
         projectIds: sql<string[]>`coalesce((select array_agg(${initiativeProject.projectId}) from ${initiativeProject} where ${initiativeProject.initiativeId} = ${initiative.id}), '{}')`,
         // Progress rolls up from every issue in the linked projects.
-        total: sql<number>`(select count(*) from ${issue} i join ${workflowState} s on s.id = i.state_id join ${initiativeProject} ip on ip.project_id = i.project_id where ip.initiative_id = ${initiative.id} and s.category <> 'canceled')`,
-        done: sql<number>`(select count(*) from ${issue} i join ${workflowState} s on s.id = i.state_id join ${initiativeProject} ip on ip.project_id = i.project_id where ip.initiative_id = ${initiative.id} and s.category = 'completed')`,
+        total: sql<number>`(select count(*) from ${issue} i join ${workflowState} s on s.id = i.state_id join ${initiativeProject} ip on ip.project_id = i.project_id where ip.initiative_id = ${initiative.id} and s.category <> 'canceled'${guestOnly})`,
+        done: sql<number>`(select count(*) from ${issue} i join ${workflowState} s on s.id = i.state_id join ${initiativeProject} ip on ip.project_id = i.project_id where ip.initiative_id = ${initiative.id} and s.category = 'completed'${guestOnly})`,
         health: sql<string | null>`(select su.health from ${statusUpdate} su where su.initiative_id = ${initiative.id} order by su.created_at desc limit 1)`,
       })
       .from(initiative)
@@ -383,7 +385,14 @@ export function planningRoutes(deps: AppDeps) {
         ),
       )
       .orderBy(asc(initiative.targetDate), asc(initiative.name));
-    return c.json({ initiatives: rows.map((r) => ({ ...r, total: Number(r.total), done: Number(r.done) })) });
+    return c.json({
+      initiatives: rows.map((r) => ({
+        ...r,
+        projectIds: m.projectIds ? r.projectIds.filter((p) => m.projectIds!.includes(p)) : r.projectIds,
+        total: Number(r.total),
+        done: Number(r.done),
+      })),
+    });
   });
 
   app.post("/workspaces/:slug/initiatives", guard("planning.manage"), async (c) => {
@@ -490,7 +499,7 @@ export function planningRoutes(deps: AppDeps) {
     if (!q.success || q.data.to < q.data.from) throw invalid();
     const items = await listIssues(
       db,
-      m.workspaceId,
+      m,
       { projectId: q.data.projectId, includeClosed: true, dueFrom: q.data.from, dueTo: q.data.to },
       2000,
     );

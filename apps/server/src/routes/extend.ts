@@ -41,6 +41,7 @@ import { ApiError, forbidden, invalid, notFound } from "../errors.js";
 import { createSafeFetch } from "../ssrf.js";
 import { fetchGitHubIssues, importIssues, MAX_IMPORT } from "../services/import.js";
 import { buildReport } from "../services/reports.js";
+import { MAX_RULES_PER_WORKSPACE } from "../services/automation.js";
 
 const isoDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
 
@@ -315,6 +316,8 @@ export function extendRoutes(deps: AppDeps) {
     const m = c.get("membership");
     const input = await parseBody(c, automationRuleSchema);
     if (input.projectId) await projectIn(m, input.projectId);
+    const [count] = await db.select({ n: sql<number>`count(*)::int` }).from(automationRule).where(eq(automationRule.workspaceId, m.workspaceId));
+    if ((count?.n ?? 0) >= MAX_RULES_PER_WORKSPACE) throw new ApiError(409, "limitReached");
     await checkActions(m, input.projectId, input.actions);
     const [row] = await db
       .insert(automationRule)

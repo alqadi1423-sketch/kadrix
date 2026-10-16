@@ -46,7 +46,7 @@ export function ydocToText(doc: Y.Doc): string {
  * document opens; guests and read-only roles join without write access.
  * The document is saved (debounced) as binary state plus plain text.
  */
-export function mountCollab(app: Hono, upgradeWebSocket: UpgradeWebSocket, deps: { db: Database; auth: Auth; events: EventBus }) {
+export function mountCollab(app: Hono, upgradeWebSocket: UpgradeWebSocket, deps: { db: Database; auth: Auth; events: EventBus; baseUrl: string }) {
   const { db, auth, events } = deps;
 
   const hocuspocus = new Hocuspocus<CollabContext>({
@@ -103,7 +103,9 @@ export function mountCollab(app: Hono, upgradeWebSocket: UpgradeWebSocket, deps:
   app.get(
     "/api/workspaces/:slug/pages/:pageId/collab",
     upgradeWebSocket(async (c) => {
-      const ctx = await authorize(c.req.raw.headers, c.req.param("slug") ?? "", c.req.param("pageId") ?? "").catch(() => null);
+      // Other sites must not open this socket with the visitor's cookie.
+      const o = c.req.header("origin");
+      const ctx = o && o !== new URL(deps.baseUrl).origin ? null : await authorize(c.req.raw.headers, c.req.param("slug") ?? "", c.req.param("pageId") ?? "").catch(() => null);
       let conn: ReturnType<Hocuspocus["handleConnection"]> | null = null;
       return {
         onOpen(_evt, ws) {

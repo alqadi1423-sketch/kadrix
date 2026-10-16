@@ -1,6 +1,6 @@
 import { lookup as dnsLookup } from "node:dns";
 import { lookup } from "node:dns/promises";
-import { isIP } from "node:net";
+import { BlockList, isIP } from "node:net";
 import { Agent, fetch as undiciFetch } from "undici";
 
 /**
@@ -10,10 +10,13 @@ import { Agent, fetch as undiciFetch } from "undici";
  */
 export class UnsafeUrlError extends Error {}
 
-function v4ToInt(ip: string) {
-  return ip.split(".").reduce((a, o) => (a << 8) + Number(o), 0) >>> 0;
-}
-const V4_BLOCKED: [string, number][] = [
+/**
+ * Address ranges a webhook must never reach. Node's BlockList matches
+ * IPv4-mapped IPv6 addresses (in any spelling, such as ::ffff:7f00:1)
+ * against the IPv4 rules, which a string check gets wrong.
+ */
+const BLOCKED = new BlockList();
+for (const [net, bits] of [
   ["0.0.0.0", 8],
   ["10.0.0.0", 8],
   ["100.64.0.0", 10],
@@ -21,31 +24,50 @@ const V4_BLOCKED: [string, number][] = [
   ["169.254.0.0", 16],
   ["172.16.0.0", 12],
   ["192.0.0.0", 24],
+  ["192.0.2.0", 24],
   ["192.168.0.0", 16],
   ["198.18.0.0", 15],
+  ["198.51.100.0", 24],
+  ["203.0.113.0", 24],
   ["224.0.0.0", 4],
   ["240.0.0.0", 4],
-];
+] as const) {
+  BLOCKED.addSubnet(net, bits, "ipv4");
+}
+for (const [net, bits] of [
+  ["::", 128], // unspecified
+  ["::1", 128], // loopback
+  ["::", 96], // IPv4-compatible (deprecated)
+  ["64:ff9b::", 96], // NAT64 to any IPv4, including private ones
+  ["64:ff9b:1::", 48],
+  ["100::", 64], // discard
+  ["2001:db8::", 32], // documentation
+  ["2002::", 16], // 6to4 embeds an IPv4 address
+  ["fc00::", 7], // unique local
+  ["fe80::", 10], // link local
+  ["fec0::", 10], // site local (deprecated)
+  ["ff00::", 8], // multicast
+] as const) {
+  BLOCKED.addSubnet(net, bits, "ipv6");
+}
 
 export function isPrivateAddress(ip: string): boolean {
-  if (isIP(ip) === 4) {
-    const n = v4ToInt(ip);
-    return V4_BLOCKED.some(([base, bits]) => (n >>> (32 - bits)) === (v4ToInt(base) >>> (32 - bits)));
+  const family = isIP(ip);
+  if (family === 4) return BLOCKED.check(ip, "ipv4");
+  if (family === 6) {
+    const v6 = ip.toLowerCase();
+    // ::ffff:a.b.c.d and ::ffff:xxxx:xxxx both map to IPv4.
+    const hex = /^::ffff:([0-9a-f]{1,4}):([0-9a-f]{1,4})$/.exec(v6);
+    if (hex) {
+      const n = (parseInt(hex[1]!, 16) << 16) | parseInt(hex[2]!, 16);
+      return BLOCKED.check([n >>> 24, (n >>> 16) & 255, (n >>> 8) & 255, n & 255].join("."), "ipv4");
+    }
+    const dotted = /^::ffff:(\d+\.\d+\.\d+\.\d+)$/.exec(v6);
+    if (dotted) return BLOCKED.check(dotted[1]!, "ipv4");
+    return BLOCKED.check(v6, "ipv6");
   }
-  const v6 = ip.toLowerCase();
-  const mapped = /^::ffff:(\d+\.\d+\.\d+\.\d+)$/.exec(v6);
-  if (mapped) return isPrivateAddress(mapped[1]!);
-  return (
-    v6 === "::" ||
-    v6 === "::1" ||
-    v6.startsWith("fc") ||
-    v6.startsWith("fd") ||
-    v6.startsWith("fe8") ||
-    v6.startsWith("fe9") ||
-    v6.startsWith("fea") ||
-    v6.startsWith("feb") ||
-    v6.startsWith("ff")
-  );
+  // Not an IP at all: refuse rather than guess.
+  return true;
 }
 
 /** Validates scheme and resolves the host; every resolved address must be public. */

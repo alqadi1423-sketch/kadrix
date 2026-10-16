@@ -31,10 +31,14 @@ export const issueColumns = {
 };
 
 /** A workspace id, or a membership that may limit which projects are visible. */
-export type Scope = string | { workspaceId: string; projectIds?: string[] | null };
+/**
+ * Who is asking. Always the caller's membership, so guest limits can never
+ * be skipped by passing a bare workspace id. Internal jobs that act for
+ * the whole workspace pass `{ workspaceId, projectIds: null }` on purpose.
+ */
+export type Scope = { workspaceId: string; projectIds: string[] | null };
 
 export function scopeWhere(scope: Scope): SQL {
-  if (typeof scope === "string") return eq(issue.workspaceId, scope);
   const ws = eq(issue.workspaceId, scope.workspaceId);
   if (!scope.projectIds) return ws;
   // Guests: only their projects. An empty list matches nothing.

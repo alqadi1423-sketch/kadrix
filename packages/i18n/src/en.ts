@@ -672,6 +672,7 @@ export const en = {
     wrongCode: "That code is not right. Try the current one.",
   },
   errors: {
+    limitReached: "This workspace has reached the limit for this.",
     aiDisabled: "AI features are not switched on for this server.",
     aiFailed: "The AI service did not answer. Try again later.",
     importFailed: "Could not read from the other service. Check the address and token.",

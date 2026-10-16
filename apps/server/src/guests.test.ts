@@ -48,6 +48,31 @@ describe("guest access", () => {
     expect((await w.guest.call("POST", `/workspaces/acme/issues/${w.a.id}/comments`, { body: "hi" })).status).toBe(201);
   });
 
+  it("never learns about hidden issues through the calendar, relations, notifications or initiatives", async () => {
+    const w = await world();
+    await w.owner.call("PATCH", `/workspaces/acme/issues/${w.a.id}`, { dueDate: "2026-11-01" });
+    await w.owner.call("PATCH", `/workspaces/acme/issues/${w.b.id}`, { dueDate: "2026-11-01" });
+    const cal = await w.guest.json<{ issues: { title: string }[] }>("GET", "/workspaces/acme/calendar?from=2000-01-01&to=2100-01-01");
+    expect(cal.data.issues.map((i) => i.title)).toEqual(["Shared work"]);
+    const withSecret = await w.guest.json<{ issues: unknown[] }>("GET", `/workspaces/acme/calendar?from=2000-01-01&to=2100-01-01&projectId=${w.secret}`);
+    expect(withSecret.data.issues).toHaveLength(0);
+
+    await w.owner.call("POST", `/workspaces/acme/issues/${w.a.id}/relations`, { type: "blocks", relatedIssueId: w.b.id });
+    const detail = await w.guest.json<{ relations: unknown[]; related: unknown[] }>("GET", `/workspaces/acme/issues/${w.a.id}`);
+    expect(detail.data.relations).toHaveLength(0);
+    expect(detail.data.related).toHaveLength(0);
+
+    // Cannot be assigned or told about work they cannot see.
+    expect((await w.owner.call("PATCH", `/workspaces/acme/issues/${w.b.id}`, { assigneeId: w.guest.id })).status).toBe(400);
+    await w.owner.call("POST", `/workspaces/acme/issues/${w.b.id}/comments`, { body: `look <@${w.guest.id}>` });
+    const inbox = await w.guest.json<{ notifications: unknown[] }>("GET", "/workspaces/acme/notifications");
+    expect(inbox.data.notifications).toHaveLength(0);
+
+    await w.owner.call("POST", "/workspaces/acme/initiatives", { name: "Launch", projectIds: [w.shared, w.secret] });
+    const ini = await w.guest.json<{ initiatives: { projectIds: string[]; total: number }[] }>("GET", "/workspaces/acme/initiatives");
+    expect(ini.data.initiatives[0]).toMatchObject({ projectIds: [w.shared], total: 1 });
+  });
+
   it("sees nothing until granted, and only admins can grant", async () => {
     const owner = await t.signUp("Owner");
     await owner.call("POST", "/workspaces", { name: "Acme", slug: "acme" });

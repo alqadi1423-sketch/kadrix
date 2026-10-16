@@ -96,7 +96,14 @@ export function issueRoutes(deps: AppDeps) {
     ]);
     const relatedIds = [...new Set(relations.flatMap((r) => [r.issueId, r.relatedIssueId]))].filter((x) => x !== id);
     const related = await listIssuesByIds(db, m, relatedIds);
-    return c.json({ issue: row, children, relations, related, subscribed: subscribed.length > 0 });
+    const seen = new Set([id, ...related.map((r) => r.id)]);
+    return c.json({
+      issue: row,
+      children,
+      relations: relations.filter((r) => seen.has(r.issueId) && seen.has(r.relatedIssueId)),
+      related,
+      subscribed: subscribed.length > 0,
+    });
   });
 
   app.patch("/workspaces/:slug/issues/:id", guard("issue.update"), async (c) => {
@@ -366,6 +373,7 @@ export function issueRoutes(deps: AppDeps) {
         issueTitle: issue.title,
         issueNumber: issue.number,
         projectKey: project.key,
+        projectId: issue.projectId,
       })
       .from(notification)
       .leftJoin(user, eq(user.id, notification.actorId))
@@ -380,7 +388,8 @@ export function issueRoutes(deps: AppDeps) {
       )
       .orderBy(desc(notification.createdAt))
       .limit(100);
-    return c.json({ notifications: rows });
+    // A guest may have lost access to a project since being notified.
+    return c.json({ notifications: rows.filter((r) => !r.issueId || seesProject(m, r.projectId)) });
   });
 
   app.post("/workspaces/:slug/notifications/read", guard("workspace.read"), async (c) => {

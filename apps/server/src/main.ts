@@ -38,8 +38,8 @@ startRecurrenceWorker(db, events);
 
 const root = new Hono();
 const { injectWebSocket, upgradeWebSocket } = createNodeWebSocket({ app: root });
-mountRealtime(root, upgradeWebSocket, { db, auth, events });
-mountCollab(root, upgradeWebSocket, { db, auth, events });
+mountRealtime(root, upgradeWebSocket, { db, auth, events, baseUrl: config.baseUrl });
+mountCollab(root, upgradeWebSocket, { db, auth, events, baseUrl: config.baseUrl });
 root.route(
   "/",
   createApp({

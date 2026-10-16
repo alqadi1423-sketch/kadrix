@@ -72,7 +72,12 @@ export function setupTestApp(extra: Partial<AppDeps> = {}) {
     webhookStatus,
     signUp,
     migrate: () => runMigrations(url),
-    reset: () => db.execute(sql`TRUNCATE "user", workspace CASCADE`),
+    // DELETE, not TRUNCATE: the audit log refuses TRUNCATE, and deleting
+    // workspaces first is the path its guard allows.
+    reset: async () => {
+      await db.execute(sql`DELETE FROM workspace`);
+      await db.execute(sql`DELETE FROM "user"`);
+    },
     close: () => client.end(),
   };
 }

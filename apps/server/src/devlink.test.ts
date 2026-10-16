@@ -81,6 +81,13 @@ describe("webhooks", () => {
     }
     expect(isPrivateAddress("::ffff:192.168.1.1")).toBe(true);
     expect(isPrivateAddress("8.8.8.8")).toBe(false);
+    // The URL parser rewrites [::ffff:127.0.0.1] to this spelling.
+    expect(isPrivateAddress("::ffff:7f00:1")).toBe(true);
+    expect(isPrivateAddress("::ffff:a9fe:a9fe")).toBe(true);
+    expect(isPrivateAddress("64:ff9b::a00:1")).toBe(true);
+    expect(isPrivateAddress("2002:7f00:1::")).toBe(true);
+    expect(isPrivateAddress("::ffff:808:808")).toBe(false);
+    expect(isPrivateAddress("2606:4700::1111")).toBe(false);
   });
 
   it("only admins manage webhooks", async () => {

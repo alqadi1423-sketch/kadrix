@@ -1,5 +1,5 @@
 import { formatDate, nextOccurrence, type RECURRENCE_FREQ } from "@veloq/core";
-import { issueTemplate, recurrence, type Database } from "@veloq/db";
+import { issueTemplate, recurrence, workspaceMember, type Database } from "@veloq/db";
 import { and, eq, lte } from "drizzle-orm";
 import type { EventBus } from "../events.js";
 import { createIssue } from "./issues.js";
@@ -37,8 +37,17 @@ export async function runRecurrences(db: Database, events: EventBus, today = for
     if (done === true) break;
     const { rule, template: t, fire } = done;
     const d = t.defaults;
+    // Issues are created in the scheduler's name only while they still
+    // belong to the workspace; otherwise they come from "recurring".
+    const [owner] = rule.createdBy
+      ? await db
+          .select({ role: workspaceMember.role })
+          .from(workspaceMember)
+          .where(and(eq(workspaceMember.workspaceId, rule.workspaceId), eq(workspaceMember.userId, rule.createdBy)))
+      : [];
+    const actorId = owner && owner.role !== "guest" ? rule.createdBy : null;
     await createIssue(
-      { db, events, workspaceId: rule.workspaceId, actorId: rule.createdBy, source: "recurrence" },
+      { db, events, workspaceId: rule.workspaceId, actorId, source: "recurrence" },
       {
         projectId: t.projectId,
         title: (t.title || t.name).slice(0, 250),

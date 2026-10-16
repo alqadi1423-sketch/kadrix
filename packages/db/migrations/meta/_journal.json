@@ -71,6 +71,13 @@
       "when": 1792171462787,
       "tag": "0009_two_factor",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1792172132397,
+      "tag": "0010_audit_hardening",
+      "breakpoints": true
     }
   ]
 }

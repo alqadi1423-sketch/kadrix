@@ -143,3 +143,26 @@ describe("AI is off by default", () => {
     expect(await r.json()).toEqual({ error: "aiDisabled" });
   });
 });
+
+describe("audit log", () => {
+  it("cannot be truncated or have its actor erased while the user exists", async () => {
+    await setupWorkspace();
+    await expect(db.execute(sql`TRUNCATE audit_log`)).rejects.toThrow();
+    await expect(db.execute(sql`UPDATE audit_log SET actor_id = NULL`)).rejects.toThrow();
+  });
+});
+
+describe("cross-site requests", () => {
+  it("refuses cookie requests from other origins and non-JSON bodies", async () => {
+    const owner = await setupWorkspace();
+    const evil = await owner.call("POST", "/workspaces/acme/labels", { name: "x", color: "#123456" }, { origin: "https://evil.example" });
+    expect(evil.status).toBe(403);
+    const form = await app.request("/api/workspaces/acme/labels", {
+      method: "POST",
+      headers: { cookie: owner.cookie, origin: "http://localhost:3000", "content-type": "text/plain" },
+      body: JSON.stringify({ name: "x", color: "#123456" }),
+    });
+    expect(form.status).toBe(400);
+    expect((await owner.call("GET", "/workspaces/acme/issues/not-a-uuid/links")).status).toBe(404);
+  });
+});

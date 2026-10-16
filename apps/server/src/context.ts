@@ -61,6 +61,8 @@ export function requireUser(c: Context<Env>): SessionUser {
 }
 
 export async function parseBody<T extends z.ZodType>(c: Context, schema: T): Promise<z.infer<T>> {
+  // Only real JSON requests: a cross-site HTML form cannot send this type.
+  if (!(c.req.header("content-type") ?? "").toLowerCase().startsWith("application/json")) throw invalid();
   const body = await c.req.json().catch(() => null);
   const result = schema.safeParse(body);
   if (!result.success) throw invalid();

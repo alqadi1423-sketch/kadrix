@@ -15,6 +15,9 @@ import { addComment, updateIssue, type AutomationTriggerEvent, type IssueContext
 
 type Patch = z.infer<typeof updateIssueSchema>;
 
+export const MAX_RULE_RUNS_PER_CHANGE = 25;
+export const MAX_RULES_PER_WORKSPACE = 100;
+
 async function subjectOf(ctx: IssueContext, issueId: string): Promise<(RuleSubject & { projectId: string }) | null> {
   const [row] = await ctx.db
     .select({
@@ -78,6 +81,9 @@ function plan(actions: AutomationAction[], subject: RuleSubject) {
 export async function runAutomations(ctx: IssueContext, events: AutomationTriggerEvent[]) {
   const depth = ctx.depth ?? 0;
   if (!events.length || depth >= MAX_AUTOMATION_DEPTH) return;
+  // One person's edit may set off at most this many rule runs in total,
+  // however the rules chain, so rules cannot multiply into a flood.
+  const budget = ctx.budget ?? { left: MAX_RULE_RUNS_PER_CHANGE };
   const seen = new Set<string>();
   for (const ev of events) {
     const key = `${ev.trigger}:${ev.issueId}`;
@@ -98,13 +104,15 @@ export async function runAutomations(ctx: IssueContext, events: AutomationTrigge
       )
       .orderBy(automationRule.createdAt);
     for (const rule of rules) {
+      if (budget.left <= 0) return;
       const conditions = z.array(conditionSchema).safeParse(rule.conditions);
       const actions = z.array(actionSchema).safeParse(rule.actions);
       if (!conditions.success || !actions.success) continue;
       // Re-read between rules so each one sees what the previous one did.
       const now = await subjectOf(ctx, ev.issueId);
       if (!now || !matchesConditions(now, conditions.data)) continue;
-      const next: IssueContext = { ...ctx, actorId: null, source: "automation", depth: depth + 1 };
+      budget.left--;
+      const next: IssueContext = { ...ctx, actorId: null, source: "automation", depth: depth + 1, budget };
       const { patch, comments } = plan(actions.data, now);
       let error: string | null = null;
       try {

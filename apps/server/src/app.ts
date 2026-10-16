@@ -1,7 +1,9 @@
 import { apiToken, user, userPreference } from "@veloq/db";
 import { and, eq, isNull } from "drizzle-orm";
 import { Hono } from "hono";
+import { bodyLimit } from "hono/body-limit";
 import { secureHeaders } from "hono/secure-headers";
+import { MAX_UPLOAD_BYTES } from "./storage.js";
 import { z } from "zod";
 import { type AppDeps, type Env, parseBody, requireUser } from "./context.js";
 import { CLIENT_IP_HEADER } from "./auth.js";
@@ -30,8 +32,33 @@ export function createApp(deps: AppDeps) {
 
   app.use("*", secureHeaders());
 
+  // Bodies are read into memory, so cap them before anything parses one.
+  // Uploads get their own, larger limit; everything else (JSON, CSV
+  // imports, webhook payloads) fits in 11 MB.
+  const tooLarge = (c: Parameters<Parameters<typeof bodyLimit>[0]["onError"] & {}>[0]) => c.json({ error: "tooLarge" }, 413);
+  const jsonLimit = bodyLimit({ maxSize: 11 * 1024 * 1024, onError: tooLarge });
+  const uploadLimit = bodyLimit({ maxSize: MAX_UPLOAD_BYTES + 64 * 1024, onError: tooLarge });
+  app.use("*", (c, next) => (c.req.method === "POST" && /\/attachments$/.test(c.req.path) ? uploadLimit(c, next) : jsonLimit(c, next)));
+
+  // Cookie sessions: refuse state changes started by other sites (CSRF).
+  // Token requests carry no ambient credentials, so they are not affected.
+  const appOrigin = new URL(deps.baseUrl).origin;
+  app.use("*", async (c, next) => {
+    const unsafe = !["GET", "HEAD", "OPTIONS"].includes(c.req.method);
+    const cookie = !!c.req.header("cookie") && !c.req.header("authorization");
+    if (unsafe && cookie) {
+      const origin = c.req.header("origin");
+      const site = c.req.header("sec-fetch-site");
+      if ((origin && origin !== appOrigin) || site === "cross-site") throw forbidden();
+    }
+    await next();
+  });
+
   app.onError((err, c) => {
     if (err instanceof ApiError) return c.json({ error: err.code }, err.status);
+    // A malformed id in the URL is "not found", not a server error.
+    const cause = (err as { cause?: { code?: string } }).cause;
+    if (cause?.code === "22P02") return c.json({ error: "notFound" }, 404);
     console.error(err);
     return c.json({ error: "generic" }, 500);
   });
