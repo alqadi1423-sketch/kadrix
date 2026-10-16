@@ -42,6 +42,10 @@ export interface AppDeps {
   allowPrivateWebhooks: boolean;
   /** Requests per minute per user or IP; 0 disables the limiter. */
   rateLimitPerMinute?: number;
+  /** Sign-in, sign-up and reset attempts per client address per 5 minutes (0 = off). */
+  authAttemptsPer5Min?: number;
+  /** Reverse proxies in front of the server whose X-Forwarded-For we trust. */
+  trustProxy?: number;
   /** Override for outgoing webhook HTTP calls (tests). */
   webhookFetch?: typeof fetch;
 }

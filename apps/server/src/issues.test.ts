@@ -186,6 +186,15 @@ describe("issues", () => {
     expect(r.status).toBe(200);
     expect((await list(w.owner, { priority: [2] })).length).toBe(2);
   });
+
+  it("changes nothing when one issue in a bulk update fails", async () => {
+    const w = await world();
+    const a = await newIssue(w.owner, w.projectId);
+    const missing = "00000000-0000-4000-8000-000000000000";
+    const r = await w.member.call("POST", "/workspaces/acme/issues/bulk", { ids: [a.id, missing], patch: { priority: 3 } });
+    expect(r.status).toBe(404);
+    expect((await list(w.owner, { priority: [3] })).length).toBe(0);
+  });
 });
 
 describe("collaboration", () => {

@@ -309,7 +309,24 @@ const TRACKED = [
 
 export async function updateIssue(ctx: IssueContext, issueId: string, input: UpdateInput) {
   const outbox = new Outbox();
-  const updated = await ctx.db.transaction(async (tx) => {
+  const updated = await ctx.db.transaction((tx) => updateIssueIn(tx, outbox, ctx, issueId, input));
+  await outbox.flush(ctx.events);
+  return updated;
+}
+
+/** Apply one patch to many issues atomically: all change or none do. */
+export async function updateIssues(ctx: IssueContext, issueIds: string[], input: UpdateInput) {
+  const outbox = new Outbox();
+  // Lock in a stable order so two bulk edits cannot deadlock each other.
+  const ids = [...new Set(issueIds)].sort();
+  await ctx.db.transaction(async (tx) => {
+    for (const id of ids) await updateIssueIn(tx, outbox, ctx, id, input);
+  });
+  await outbox.flush(ctx.events);
+}
+
+async function updateIssueIn(tx: Tx, outbox: Outbox, ctx: IssueContext, issueId: string, input: UpdateInput) {
+  {
     const [cur] = await tx
       .select()
       .from(issue)
@@ -436,9 +453,7 @@ export async function updateIssue(ctx: IssueContext, issueId: string, input: Upd
       outbox.add({ workspaceId: ctx.workspaceId, entity: "issue", id: issueId });
     }
     return row!;
-  });
-  await outbox.flush(ctx.events);
-  return updated;
+  }
 }
 
 /* ------------------------------ comments ---------------------------- */

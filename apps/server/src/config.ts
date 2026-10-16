@@ -12,6 +12,8 @@ export interface Config {
   dataDir: string;
   allowPrivateWebhooks: boolean;
   rateLimitPerMinute: number;
+  authAttemptsPer5Min: number;
+  trustProxy: number;
   smtpUrl: string | null;
   mailFrom: string;
 }
@@ -33,6 +35,8 @@ export function loadConfig(env = process.env): Config {
     dataDir: env.DATA_DIR ?? "./data",
     allowPrivateWebhooks: env.WEBHOOK_ALLOW_PRIVATE === "1",
     rateLimitPerMinute: Number(env.RATE_LIMIT_PER_MINUTE ?? 600),
+    authAttemptsPer5Min: Number(env.AUTH_ATTEMPTS_PER_5_MIN ?? 20),
+    trustProxy: Number(env.TRUST_PROXY ?? 0),
     smtpUrl: env.SMTP_URL || null,
     mailFrom: env.MAIL_FROM ?? "Veloq <no-reply@localhost>",
   };

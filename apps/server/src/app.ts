@@ -4,6 +4,7 @@ import { Hono } from "hono";
 import { secureHeaders } from "hono/secure-headers";
 import { z } from "zod";
 import { type AppDeps, type Env, parseBody, requireUser } from "./context.js";
+import { CLIENT_IP_HEADER } from "./auth.js";
 import { hashToken } from "./crypto.js";
 import { ApiError, forbidden, unauthorized } from "./errors.js";
 import { openApiDocument } from "./openapi.js";
@@ -29,7 +30,20 @@ export function createApp(deps: AppDeps) {
     return c.json({ error: "generic" }, 500);
   });
 
-  app.on(["GET", "POST"], "/auth/*", (c) => auth.handler(c.req.raw));
+  const ipOf = (c: Parameters<typeof clientIp>[0]) => clientIp(c, deps.trustProxy ?? 0);
+
+  // Credential endpoints get a tight per-address budget on top of Better
+  // Auth's own rules, so guessing passwords or mass sign-ups stay slow.
+  const SENSITIVE = /\/auth\/(sign-in|sign-up|forget-password|request-password-reset|reset-password|change-password)/;
+  const authLimit = rateLimit(deps.authAttemptsPer5Min ?? 0, (c) => `auth:${ipOf(c) ?? "anon"}`, 5 * 60_000);
+  app.on(["GET", "POST"], "/auth/*", async (c, next) => (c.req.method === "POST" && SENSITIVE.test(c.req.path) ? authLimit(c, next) : next()), (c) => {
+    // Hand Better Auth the address we resolved, never one the client sent.
+    const headers = new Headers(c.req.raw.headers);
+    headers.delete(CLIENT_IP_HEADER);
+    const ip = ipOf(c);
+    if (ip) headers.set(CLIENT_IP_HEADER, ip);
+    return auth.handler(new Request(c.req.raw, { headers }));
+  });
 
   // Resolve the caller once per request: API token first, then session cookie.
   app.use("*", async (c, next) => {
@@ -68,7 +82,7 @@ export function createApp(deps: AppDeps) {
     await next();
   });
 
-  app.use("*", rateLimit(deps.rateLimitPerMinute ?? 0, (c) => c.get("user")?.id ?? clientIp(c)));
+  app.use("*", rateLimit(deps.rateLimitPerMinute ?? 0, (c) => c.get("user")?.id ?? ipOf(c)));
 
   app.get("/health", (c) => c.json({ ok: true, edition }));
   app.get("/me", (c) => c.json({ user: requireUser(c) }));

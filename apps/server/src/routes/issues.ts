@@ -24,7 +24,7 @@ import { Hono } from "hono";
 import { z } from "zod";
 import { type AppDeps, type Env, type Membership, assertCan, parseBody, parseQuery, requireUser, seesProject, workspaceGuard } from "../context.js";
 import { ApiError, forbidden, invalid, notFound } from "../errors.js";
-import { addComment, createIssue, updateIssue } from "../services/issues.js";
+import { addComment, createIssue, updateIssue, updateIssues } from "../services/issues.js";
 import { getIssue, listIssues, listIssuesByIds } from "../services/query.js";
 import { enqueueWebhooks } from "../services/webhooks.js";
 import { MAX_UPLOAD_BYTES } from "../storage.js";
@@ -114,7 +114,7 @@ export function issueRoutes(deps: AppDeps) {
       z.object({ ids: z.array(z.string().uuid()).min(1).max(200), patch: updateIssueSchema }),
     );
     const ctx = ctxOf(m.workspaceId, requireUser(c).id);
-    for (const id of ids) await updateIssue(ctx, id, patch);
+    await updateIssues(ctx, ids, patch);
     return c.json({ ok: true });
   });
 

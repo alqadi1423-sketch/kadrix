@@ -2,6 +2,7 @@ import { createDb, runMigrations } from "@veloq/db";
 import { sql } from "drizzle-orm";
 import { expect } from "vitest";
 import { createApp } from "./app.js";
+import type { AppDeps } from "./context.js";
 import { createAuth } from "./auth.js";
 import { createSealer } from "./crypto.js";
 import { createMemoryEventBus } from "./events.js";
@@ -13,11 +14,11 @@ export const BASE = "http://localhost:3000";
  * Builds an app against TEST_DATABASE_URL. Each test file gets its own
  * schema-sharing connection; `reset()` truncates all tenant data.
  */
-export function setupTestApp() {
+export function setupTestApp(extra: Partial<AppDeps> = {}) {
   const url = process.env.TEST_DATABASE_URL;
   if (!url) throw new Error("TEST_DATABASE_URL is required for server tests");
   const { db, client } = createDb(url);
-  const auth = createAuth(db, { secret: "test-secret-test-secret-test-secret!!", baseUrl: BASE });
+  const auth = createAuth(db, { secret: "test-secret-test-secret-test-secret!!", baseUrl: BASE, rateLimit: false });
   const events = createMemoryEventBus();
   const storage = createMemoryStorage();
   const sent: { url: string; init: RequestInit }[] = [];
@@ -35,6 +36,7 @@ export function setupTestApp() {
       sent.push({ url: String(url), init: init ?? {} });
       return new Response("ok", { status: webhookStatus.value });
     },
+    ...extra,
   });
 
   async function signUp(name: string) {

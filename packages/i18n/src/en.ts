@@ -37,6 +37,13 @@ export const en = {
     password: "Password",
     noAccount: "No account yet?",
     haveAccount: "Already have an account?",
+    passwordHint: "At least 15 characters. A few unrelated words make a strong, easy to remember passphrase.",
+    showPassword: "Show password",
+    hidePassword: "Hide password",
+    weakPassword: "That password is too easy to guess. Try a longer phrase.",
+    shortPassword: "Use at least 15 characters.",
+    badCredentials: "Email or password is incorrect.",
+    emailTaken: "An account with this email already exists.",
   },
   nav: {
     inbox: "Inbox",

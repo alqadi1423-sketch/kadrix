@@ -37,6 +37,13 @@ export const ar: Messages = {
     password: "كلمة المرور",
     noAccount: "ليس لديك حساب؟",
     haveAccount: "لديك حساب بالفعل؟",
+    passwordHint: "15 حرفًا على الأقل. عدة كلمات لا رابط بينها تصنع عبارة قوية وسهلة الحفظ.",
+    showPassword: "إظهار كلمة المرور",
+    hidePassword: "إخفاء كلمة المرور",
+    weakPassword: "كلمة المرور سهلة التخمين. جرّب عبارة أطول.",
+    shortPassword: "استخدم 15 حرفًا على الأقل.",
+    badCredentials: "البريد أو كلمة المرور غير صحيحة.",
+    emailTaken: "يوجد حساب بهذا البريد مسبقًا.",
   },
   nav: {
     inbox: "الوارد",

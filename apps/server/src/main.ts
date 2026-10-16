@@ -21,7 +21,8 @@ const config = loadConfig();
 await runMigrations(config.databaseUrl, process.env.MIGRATIONS_DIR || undefined);
 
 const { db } = createDb(config.databaseUrl);
-const auth = createAuth(db, { secret: config.authSecret, baseUrl: config.baseUrl });
+// Setting the attempt budget to 0 turns off both layers of auth rate limiting.
+const auth = createAuth(db, { secret: config.authSecret, baseUrl: config.baseUrl, rateLimit: config.authAttemptsPer5Min > 0 });
 const events = createPgEventBus(config.databaseUrl);
 const storage = createDiskStorage(config.dataDir);
 const sealer = createSealer(config.authSecret);
@@ -46,6 +47,8 @@ root.route(
     sealer,
     allowPrivateWebhooks: config.allowPrivateWebhooks,
     rateLimitPerMinute: config.rateLimitPerMinute,
+    authAttemptsPer5Min: config.authAttemptsPer5Min,
+    trustProxy: config.trustProxy,
   }),
 );
 
