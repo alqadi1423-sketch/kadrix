@@ -31,7 +31,8 @@ export function loadConfig(env = process.env): Config {
   return {
     databaseUrl,
     authSecret,
-    baseUrl: env.BASE_URL ?? "http://localhost:3000",
+    // Render sets RENDER_EXTERNAL_URL to the service address.
+    baseUrl: env.BASE_URL ?? env.RENDER_EXTERNAL_URL ?? "http://localhost:3000",
     port: Number(env.PORT ?? 3000),
     edition: parseEdition(env.KADRIX_EDITION),
     webDist: env.WEB_DIST ?? null,

@@ -1,0 +1,28 @@
+# One-click deploy on Render: https://render.com/deploy?repo=https://github.com/alqadi1423-sketch/kadrix
+# Free plans are for trying Kadrix: the app sleeps after 15 minutes idle,
+# the free database expires after 30 days, and uploaded files are lost on
+# each deploy. Switch both to paid plans (and add a disk at /app/data) for real use.
+services:
+  - type: web
+    name: kadrix
+    runtime: docker
+    plan: free
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /api/health
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: kadrix-db
+          property: connectionString
+      - key: AUTH_SECRET
+        generateValue: true
+      - key: TRUST_PROXY
+        value: "1"
+      - key: KADRIX_EDITION
+        value: self-hosted
+
+databases:
+  - name: kadrix-db
+    plan: free
+    databaseName: kadrix
+    user: kadrix
