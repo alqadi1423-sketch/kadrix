@@ -166,3 +166,19 @@ describe("cross-site requests", () => {
     expect((await owner.call("GET", "/workspaces/acme/issues/not-a-uuid/links")).status).toBe(404);
   });
 });
+
+describe("trusted origins", () => {
+  it("accepts an extra origin only when configured", async () => {
+    const extra = setupTestApp({ trustedOrigins: ["https://localhost:3000"] });
+    const owner = await setupWorkspace();
+    const call = (a: typeof app) =>
+      a.request("/api/workspaces/acme/labels", {
+        method: "POST",
+        headers: { cookie: owner.cookie, origin: "https://localhost:3000", "content-type": "application/json" },
+        body: JSON.stringify({ name: "t", color: "#123456" }),
+      });
+    expect((await call(app)).status).toBe(403);
+    expect((await call(extra.app)).status).toBe(201);
+    await extra.close();
+  });
+});

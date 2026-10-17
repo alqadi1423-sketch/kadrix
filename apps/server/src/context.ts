@@ -50,6 +50,8 @@ export interface AppDeps {
   webhookFetch?: typeof fetch;
   /** Override for calls to other tools' APIs when importing (tests). */
   importFetch?: typeof fetch;
+  /** Extra origins accepted besides BASE_URL's. */
+  trustedOrigins?: string[];
   /** AI provider, or null/undefined while none is switched on. */
   ai?: AiProvider | null;
 }
@@ -110,6 +112,11 @@ export const workspaceGuard =
 /** In-handler permission check for actions that depend on the request body. */
 export function assertCan(c: Context<Env>, action: Action) {
   if (!can(c.get("membership").role, action)) throw forbidden();
+}
+
+/** Origins allowed to make cookie requests and open sockets. */
+export function allowedOrigins(baseUrl: string, extra: string[] = []): Set<string> {
+  return new Set([new URL(baseUrl).origin, ...extra]);
 }
 
 /** True when the membership may see this project. */

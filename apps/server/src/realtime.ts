@@ -13,10 +13,9 @@ import type { EventBus } from "./events.js";
 export function mountRealtime(
   app: Hono,
   upgradeWebSocket: UpgradeWebSocket,
-  deps: { db: Database; auth: Auth; events: EventBus; baseUrl: string },
+  deps: { db: Database; auth: Auth; events: EventBus; origins: Set<string> },
 ) {
   const { db, auth, events } = deps;
-  const origin = new URL(deps.baseUrl).origin;
 
   /** Workspace id, plus the projects a guest may see (null for members). */
   async function membership(slug: string, userId: string) {
@@ -36,7 +35,7 @@ export function mountRealtime(
     upgradeWebSocket(async (c) => {
       // Other sites must not open this socket with the visitor's cookie.
       const o = c.req.header("origin");
-      const allowed = !o || o === origin;
+      const allowed = !o || deps.origins.has(o);
       const session = allowed ? await auth.api.getSession({ headers: c.req.raw.headers }) : null;
       const userId = session?.user.id ?? null;
       const slug = c.req.param("slug") ?? "";

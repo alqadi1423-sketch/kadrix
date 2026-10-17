@@ -10,6 +10,7 @@ import { createSealer } from "./crypto.js";
 import { createMailer, startDigestWorker } from "./services/digest.js";
 import { startDeliveryWorker } from "./services/webhooks.js";
 import { createAiProvider } from "./ai.js";
+import { allowedOrigins } from "./context.js";
 import { createAuth } from "./auth.js";
 import { loadConfig } from "./config.js";
 import { createPgEventBus } from "./events.js";
@@ -26,7 +27,9 @@ const { db } = createDb(config.databaseUrl);
 // Setting the attempt budget to 0 turns off both layers of auth rate limiting.
 const auth = createAuth(db, { secret: config.authSecret, baseUrl: config.baseUrl, rateLimit: config.authAttemptsPer5Min > 0,
   breachCheck: config.passwordBreachCheck,
+  trustedOrigins: config.trustedOrigins,
 });
+const origins = allowedOrigins(config.baseUrl, config.trustedOrigins);
 const events = createPgEventBus(config.databaseUrl);
 const storage = createDiskStorage(config.dataDir);
 const sealer = createSealer(config.authSecret);
@@ -38,8 +41,8 @@ startRecurrenceWorker(db, events);
 
 const root = new Hono();
 const { injectWebSocket, upgradeWebSocket } = createNodeWebSocket({ app: root });
-mountRealtime(root, upgradeWebSocket, { db, auth, events, baseUrl: config.baseUrl });
-mountCollab(root, upgradeWebSocket, { db, auth, events, baseUrl: config.baseUrl });
+mountRealtime(root, upgradeWebSocket, { db, auth, events, origins });
+mountCollab(root, upgradeWebSocket, { db, auth, events, origins });
 root.route(
   "/",
   createApp({
@@ -54,6 +57,7 @@ root.route(
     rateLimitPerMinute: config.rateLimitPerMinute,
     authAttemptsPer5Min: config.authAttemptsPer5Min,
     trustProxy: config.trustProxy,
+    trustedOrigins: config.trustedOrigins,
     ai: createAiProvider(config.ai),
   }),
 );

@@ -49,7 +49,7 @@ export function ydocToText(doc: Y.Doc): string {
 /** Largest single sync message accepted (a pasted long document fits easily). */
 const MAX_COLLAB_MESSAGE = 4 * 1024 * 1024;
 
-export function mountCollab(app: Hono, upgradeWebSocket: UpgradeWebSocket, deps: { db: Database; auth: Auth; events: EventBus; baseUrl: string }) {
+export function mountCollab(app: Hono, upgradeWebSocket: UpgradeWebSocket, deps: { db: Database; auth: Auth; events: EventBus; origins: Set<string> }) {
   const { db, auth, events } = deps;
 
   const hocuspocus = new Hocuspocus<CollabContext>({
@@ -108,7 +108,7 @@ export function mountCollab(app: Hono, upgradeWebSocket: UpgradeWebSocket, deps:
     upgradeWebSocket(async (c) => {
       // Other sites must not open this socket with the visitor's cookie.
       const o = c.req.header("origin");
-      const ctx = o && o !== new URL(deps.baseUrl).origin ? null : await authorize(c.req.raw.headers, c.req.param("slug") ?? "", c.req.param("pageId") ?? "").catch(() => null);
+      const ctx = o && !deps.origins.has(o) ? null : await authorize(c.req.raw.headers, c.req.param("slug") ?? "", c.req.param("pageId") ?? "").catch(() => null);
       let conn: ReturnType<Hocuspocus["handleConnection"]> | null = null;
       let timer: ReturnType<typeof setInterval> | null = null;
       const headers = c.req.raw.headers;

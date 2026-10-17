@@ -16,6 +16,7 @@ services:
       BASE_URL: ${BASE_URL:-http://localhost:3000}
       KADRIX_EDITION: self-hosted
       TRUST_PROXY: ${TRUST_PROXY:-0}
+      TRUSTED_ORIGINS: ${TRUSTED_ORIGINS:-}
       SMTP_URL: ${SMTP_URL:-}
       MAIL_FROM: ${MAIL_FROM:-Kadrix <no-reply@localhost>}
       AI_PROVIDER: ${AI_PROVIDER:-}

@@ -13,6 +13,8 @@ export interface AuthOptions {
   baseUrl: string;
   /** Better Auth's own limiter (strict rules for sign-in and sign-up). Off in tests. */
   rateLimit?: boolean;
+  /** Extra origins accepted besides baseUrl. */
+  trustedOrigins?: string[];
   /** Refuse passwords found in known breaches (asks Have I Been Pwned with k-anonymity). */
   breachCheck?: boolean;
 }
@@ -21,7 +23,7 @@ export function createAuth(db: Database, opts: AuthOptions) {
   return betterAuth({
     secret: opts.secret,
     baseURL: opts.baseUrl,
-    trustedOrigins: [opts.baseUrl],
+    trustedOrigins: [opts.baseUrl, ...(opts.trustedOrigins ?? [])],
     database: drizzleAdapter(db, {
       provider: "pg",
       schema: {

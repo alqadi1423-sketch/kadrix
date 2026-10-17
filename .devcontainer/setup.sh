@@ -18,8 +18,10 @@ POSTGRES_PASSWORD=$(openssl rand -hex 16)
 TRUST_PROXY=1
 ENV
 fi
-grep -v '^BASE_URL=' .env > .env.tmp || true
+grep -v '^BASE_URL=\|^TRUSTED_ORIGINS=' .env > .env.tmp || true
 echo "BASE_URL=$base" >> .env.tmp
+# Codespaces rewrites the browser's Origin header to localhost, so accept it.
+echo "TRUSTED_ORIGINS=https://localhost:3000,http://localhost:3000" >> .env.tmp
 mv .env.tmp .env
 
 # Build here so it works even before a published image can be pulled.

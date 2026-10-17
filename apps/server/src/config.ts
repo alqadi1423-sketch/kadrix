@@ -18,6 +18,8 @@ export interface Config {
   smtpUrl: string | null;
   ai: AiConfig;
   passwordBreachCheck: boolean;
+  /** Extra addresses allowed to send requests besides BASE_URL (e.g. behind Codespaces). */
+  trustedOrigins: string[];
   mailFrom: string;
 }
 
@@ -43,6 +45,11 @@ export function loadConfig(env = process.env): Config {
     trustProxy: Number(env.TRUST_PROXY ?? 0),
     smtpUrl: env.SMTP_URL || null,
     passwordBreachCheck: env.PASSWORD_BREACH_CHECK === "1",
+    trustedOrigins: (env.TRUSTED_ORIGINS ?? "")
+      .split(",")
+      .map((s) => s.trim())
+      .filter(Boolean)
+      .map((s) => new URL(s).origin),
     ai: {
       provider: env.AI_PROVIDER === "anthropic" || env.AI_PROVIDER === "openai-compatible" ? env.AI_PROVIDER : null,
       baseUrl: env.AI_BASE_URL || null,

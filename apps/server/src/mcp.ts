@@ -205,14 +205,14 @@ type RpcRequest = { jsonrpc: "2.0"; id?: string | number | null; method: string;
 
 const rpcError = (id: RpcRequest["id"], code: number, message: string) => ({ jsonrpc: "2.0" as const, id: id ?? null, error: { code, message } });
 
-export function mountMcp(app: Hono<Env>, deps: { db: Database; baseUrl: string; version: string }) {
+export function mountMcp(app: Hono<Env>, deps: { db: Database; origins: Set<string>; version: string }) {
   app.get("/mcp", (c) => c.body(null, 405, { allow: "POST" }));
   app.delete("/mcp", (c) => c.body(null, 405, { allow: "POST" }));
 
   app.post("/mcp", async (c: Context<Env>) => {
     // Browsers must not be able to drive the endpoint from other sites.
     const origin = c.req.header("origin");
-    if (origin && origin !== new URL(deps.baseUrl).origin) return c.json(rpcError(null, -32600, "Origin not allowed"), 403);
+    if (origin && !deps.origins.has(origin)) return c.json(rpcError(null, -32600, "Origin not allowed"), 403);
     const wsId = c.get("tokenWorkspaceId");
     if (!c.get("user") || !wsId) {
       c.header("www-authenticate", 'Bearer realm="kadrix"');

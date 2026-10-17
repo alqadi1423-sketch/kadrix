@@ -20,6 +20,7 @@ Kadrix reads its settings from environment variables. With Docker, put them in
 | `WEB_DIST` | none | Folder of the built web app; the server serves it when set |
 | `MIGRATIONS_DIR` | built in | Folder of database migrations |
 | `TRUST_PROXY` | `0` | Number of reverse proxies in front of Kadrix. Set `1` behind one Nginx, Caddy or Cloudflare hop |
+| `TRUSTED_ORIGINS` | none | Extra addresses, comma separated, allowed to send requests besides `BASE_URL`. Needed behind proxies that rewrite the Origin header, such as GitHub Codespaces |
 
 ## Security and limits
 

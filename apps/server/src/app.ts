@@ -5,7 +5,7 @@ import { bodyLimit } from "hono/body-limit";
 import { secureHeaders } from "hono/secure-headers";
 import { MAX_UPLOAD_BYTES } from "./storage.js";
 import { z } from "zod";
-import { type AppDeps, type Env, parseBody, requireUser } from "./context.js";
+import { type AppDeps, type Env, allowedOrigins, parseBody, requireUser } from "./context.js";
 import { CLIENT_IP_HEADER } from "./auth.js";
 import { hashToken } from "./crypto.js";
 import { editionFeatures } from "@kadrix/core";
@@ -42,14 +42,14 @@ export function createApp(deps: AppDeps) {
 
   // Cookie sessions: refuse state changes started by other sites (CSRF).
   // Token requests carry no ambient credentials, so they are not affected.
-  const appOrigin = new URL(deps.baseUrl).origin;
+  const origins = allowedOrigins(deps.baseUrl, deps.trustedOrigins);
   app.use("*", async (c, next) => {
     const unsafe = !["GET", "HEAD", "OPTIONS"].includes(c.req.method);
     const cookie = !!c.req.header("cookie") && !/^bearer\s/i.test(c.req.header("authorization") ?? "");
     if (unsafe && cookie) {
       const origin = c.req.header("origin");
       const site = c.req.header("sec-fetch-site");
-      if ((origin && origin !== appOrigin) || site === "cross-site") throw forbidden();
+      if ((origin && !origins.has(origin)) || site === "cross-site") throw forbidden();
     }
     await next();
   });
@@ -146,7 +146,7 @@ export function createApp(deps: AppDeps) {
   app.route("/", extendRoutes(deps));
   app.route("/", agentRoutes(deps));
   app.route("/", aiRoutes(deps));
-  mountMcp(app, { db, baseUrl: deps.baseUrl, version: VERSION });
+  mountMcp(app, { db, origins, version: VERSION });
 
   return app;
 }
