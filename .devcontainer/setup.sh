@@ -1,24 +1,28 @@
 #!/usr/bin/env bash
-# Prepares a GitHub Codespace to run Kadrix: writes .env with fresh secrets
-# and the Codespace's own address, then builds and starts the app.
+# Prepares a GitHub Codespace to run Kadrix: keeps .env with fresh secrets
+# and this Codespace's own address (checked again on every start, since
+# the app refuses requests from any other address), then starts the app.
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
+if [ -n "${CODESPACE_NAME:-}" ]; then
+  base="https://${CODESPACE_NAME}-3000.${GITHUB_CODESPACES_PORT_FORWARDING_DOMAIN:-app.github.dev}"
+else
+  base="http://localhost:3000"
+fi
+
 if [ ! -f .env ]; then
-  if [ -n "${CODESPACE_NAME:-}" ]; then
-    base="https://${CODESPACE_NAME}-3000.${GITHUB_CODESPACES_PORT_FORWARDING_DOMAIN}"
-  else
-    base="http://localhost:3000"
-  fi
   cat > .env <<ENV
 AUTH_SECRET=$(openssl rand -base64 48 | tr -d '\n')
 POSTGRES_PASSWORD=$(openssl rand -hex 16)
-BASE_URL=$base
 TRUST_PROXY=1
 ENV
 fi
+grep -v '^BASE_URL=' .env > .env.tmp || true
+echo "BASE_URL=$base" >> .env.tmp
+mv .env.tmp .env
 
 # Build here so it works even before a published image can be pulled.
 docker compose build
 docker compose up -d
-echo "Kadrix is starting at $(grep BASE_URL .env | cut -d= -f2)"
+echo "Kadrix is starting at $base"

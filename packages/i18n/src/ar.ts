@@ -30,6 +30,7 @@ export const ar: Messages = {
     showClosed: "إظهار المغلقة",
   },
   auth: {
+    wrongAddress: "هذا الخادم مضبوط على عنوان مختلف. افتحه من العنوان المكتوب في إعداد BASE_URL أو حدّث الإعداد.",
     signIn: "تسجيل الدخول",
     signUp: "إنشاء حساب",
     name: "الاسم",

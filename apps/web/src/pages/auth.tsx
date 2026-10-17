@@ -14,6 +14,8 @@ export function AuthPage({ onDone }: { onDone: () => void }) {
 
   function authMessage(err: { code?: string; status?: number }) {
     if (err.status === 429) return t("errors.rateLimited");
+    // The server only accepts requests from its own address (BASE_URL).
+    if (err.status === 403 || err.code === "INVALID_ORIGIN") return t("auth.wrongAddress");
     switch (err.code) {
       case "WEAK_PASSWORD":
         return t("auth.weakPassword");
@@ -25,7 +27,8 @@ export function AuthPage({ onDone }: { onDone: () => void }) {
       case "USER_ALREADY_EXISTS_USE_ANOTHER_EMAIL":
         return t("auth.emailTaken");
       default:
-        return t("errors.generic");
+        // Keep the code visible so problems can be reported precisely.
+        return `${t("errors.generic")} (${err.status ?? "?"} ${err.code ?? ""})`.replace(" )", ")");
     }
   }
 

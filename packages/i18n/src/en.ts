@@ -30,6 +30,7 @@ export const en = {
     showClosed: "Show closed",
   },
   auth: {
+    wrongAddress: "This server is set up for a different address. Open it at the address in its BASE_URL setting, or update BASE_URL.",
     signIn: "Sign in",
     signUp: "Create account",
     name: "Name",
