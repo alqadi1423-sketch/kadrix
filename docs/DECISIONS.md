@@ -15,7 +15,7 @@ To change a decision, edit this file in the same pull request as the code.
 | 5 | **TypeScript** for frontend and backend, **PostgreSQL** database |
 | 6 | Full version built in internal phases **before the first public release** |
 | 7 | **Self-hostable**, with a cloud edition the owner may run later. Cloud readiness is in the code; no service is offered now |
-| 8 | Repository on the owner's GitHub account (`alqadi1423-sketch/veloq`), public from day one |
+| 8 | Repository on the owner's GitHub account (`alqadi1423-sketch/kadrix`), public from day one |
 | 9 | AI features and mobile app: **paths built in, nothing launched** |
 
 ## Technical choices

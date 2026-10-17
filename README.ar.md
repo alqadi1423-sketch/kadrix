@@ -60,7 +60,7 @@
 </div>
 
 ```bash
-git clone https://github.com/alqadi1423-sketch/veloq.git
+git clone https://github.com/alqadi1423-sketch/kadrix.git
 cd kadrix
 cp .env.example .env    # اضبط AUTH_SECRET وPOSTGRES_PASSWORD
 docker compose up -d

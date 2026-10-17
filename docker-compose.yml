@@ -4,7 +4,7 @@
 # Upgrade: docker compose pull && docker compose up -d (migrations run on start).
 services:
   kadrix:
-    image: ghcr.io/alqadi1423-sketch/veloq:${KADRIX_VERSION:-latest}
+    image: ghcr.io/alqadi1423-sketch/kadrix:${KADRIX_VERSION:-latest}
     # Builds from this folder when the image cannot be pulled.
     build: .
     restart: unless-stopped

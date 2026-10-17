@@ -15,7 +15,7 @@ database. You can run it with Docker or directly on a Linux server.
 You need Docker with the Compose plugin.
 
 ```bash
-git clone https://github.com/alqadi1423-sketch/veloq.git
+git clone https://github.com/alqadi1423-sketch/kadrix.git
 cd kadrix
 cp .env.example .env
 ```
@@ -67,7 +67,7 @@ sudo -u postgres psql -d kadrix -c "CREATE EXTENSION IF NOT EXISTS pg_trgm;"
 
 ```bash
 sudo useradd --system --create-home --home-dir /opt/kadrix kadrix
-sudo -u kadrix git clone https://github.com/alqadi1423-sketch/veloq.git /opt/kadrix/app
+sudo -u kadrix git clone https://github.com/alqadi1423-sketch/kadrix.git /opt/kadrix/app
 cd /opt/kadrix/app
 sudo -u kadrix corepack enable --install-directory /opt/kadrix/bin
 sudo -u kadrix /opt/kadrix/bin/pnpm install --frozen-lockfile

@@ -71,7 +71,7 @@ AI features are off until you choose a provider, including a local model.
 ## Quick start
 
 ```bash
-git clone https://github.com/alqadi1423-sketch/veloq.git
+git clone https://github.com/alqadi1423-sketch/kadrix.git
 cd kadrix
 cp .env.example .env    # set AUTH_SECRET and POSTGRES_PASSWORD
 docker compose up -d
